@@ -169,6 +169,10 @@ a {
   padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
 }
 
+.tabbar-inner.tabbar-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .tab {
   display: flex;
   flex-direction: column;
@@ -499,6 +503,31 @@ a {
 
 .weekbar span.done {
   background: var(--brand);
+}
+
+/* Expandable section headers (day view) */
+.expand-head {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.reg-section {
+  border-top: 1px solid var(--line);
+}
+
+.reg-section:first-of-type {
+  border-top: none;
 }
 
 /* Weekday selector (plan menu) */

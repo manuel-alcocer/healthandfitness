@@ -2,11 +2,18 @@ import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../auth";
 
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
 const icons = {
-  today: (
+  calendar: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M3 11.5 12 4l9 7.5" />
-      <path d="M5.5 10.5V20h13v-9.5" />
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+      <path d="M8 13.5h.01M12 13.5h.01M16 13.5h.01M8 17h.01M12 17h.01" />
     </svg>
   ),
   progress: (
@@ -20,12 +27,6 @@ const icons = {
       <path d="M12 5v14M5 12h14" />
     </svg>
   ),
-  plan: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="5" y="3.5" width="14" height="17" rx="2" />
-      <path d="M9 8h6M9 12h6M9 16h4" />
-    </svg>
-  ),
   profile: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
       <circle cx="12" cy="8" r="3.5" />
@@ -33,23 +34,6 @@ const icons = {
     </svg>
   ),
 };
-
-function Tab({
-  to,
-  label,
-  icon,
-}: {
-  to: string;
-  label: string;
-  icon: keyof typeof icons;
-}) {
-  return (
-    <NavLink to={to} className={({ isActive }) => `tab${isActive ? " active" : ""}`} end={to === "/"}>
-      {icons[icon]}
-      <span>{label}</span>
-    </NavLink>
-  );
-}
 
 export default function Layout() {
   const { me } = useAuth();
@@ -69,18 +53,26 @@ export default function Layout() {
         <Outlet />
       </main>
       <nav className="tabbar" aria-label="Navegación principal">
-        <div className="tabbar-inner">
-          <Tab to="/" label="Hoy" icon="today" />
-          <Tab to="/progreso" label="Progreso" icon="progress" />
+        <div className="tabbar-inner tabbar-4">
+          <NavLink to="/" end className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
+            {icons.calendar}
+            <span>Calendario</span>
+          </NavLink>
+          <NavLink to="/progreso" className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
+            {icons.progress}
+            <span>Progreso</span>
+          </NavLink>
           <NavLink
-            to="/registrar"
+            to={`/dia/${todayISO()}?registro=1`}
             className={({ isActive }) => `tab tab-log${isActive ? " active" : ""}`}
           >
             <span className="tab-log-btn">{icons.plus}</span>
             <span>Registrar</span>
           </NavLink>
-          <Tab to="/plan" label="Plan" icon="plan" />
-          <Tab to="/perfil" label="Perfil" icon="profile" />
+          <NavLink to="/perfil" className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
+            {icons.profile}
+            <span>Perfil</span>
+          </NavLink>
         </div>
       </nav>
     </div>

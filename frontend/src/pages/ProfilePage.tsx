@@ -124,6 +124,11 @@ export default function ProfilePage() {
               <p style={{ margin: "4px 0 0" }}>{goal.admin_message}</p>
             </>
           )}
+          {goal.status === "active" && (
+            <Link className="btn btn-ghost" style={{ marginTop: 12 }} to="/plan">
+              Ver plan completo
+            </Link>
+          )}
         </div>
       )}
 

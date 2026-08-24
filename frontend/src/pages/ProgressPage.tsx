@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api";
-import CalendarGrid from "../components/CalendarGrid";
+import VerdictStamp from "../components/VerdictStamp";
 import VolumeChart from "../components/VolumeChart";
 import WeightChart from "../components/WeightChart";
 import type { Progress } from "../types";
@@ -30,9 +30,20 @@ export default function ProgressPage() {
 
   return (
     <div className="stack">
-      <h2 className="section-title">Tu calendario</h2>
+      {/* The coach's verdict — the "am I on track?" answer */}
       <div className="card">
-        <CalendarGrid />
+        <div className="row-between">
+          <div className="eyebrow">
+            {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+          </div>
+          {progress.verdict && <VerdictStamp status={progress.verdict.status} />}
+        </div>
+        <p style={{ marginBottom: 0 }}>{progress.verdict?.message}</p>
+        {progress.streak_days ? (
+          <p className="muted" style={{ margin: "6px 0 0", fontSize: 14 }}>
+            Racha de <strong className="mono">{progress.streak_days} días</strong> registrando.
+          </p>
+        ) : null}
       </div>
 
       <h2 className="section-title">Evolución del peso</h2>
