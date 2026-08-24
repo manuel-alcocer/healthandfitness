@@ -788,6 +788,25 @@ a {
   cursor: default;
 }
 
+/* Future (plannable) days: outlined but clickable, to consult the plan. */
+.cal-day.future {
+  background: var(--surface);
+  border: 1px dashed var(--ink-3);
+  color: var(--ink-2);
+}
+
+.cal-meals-toggle {
+  border: none;
+  background: none;
+  padding: 6px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-ink);
+  cursor: pointer;
+  display: block;
+}
+
 .cal-day.lvl-red {
   background: var(--bad-soft);
   color: var(--bad);
