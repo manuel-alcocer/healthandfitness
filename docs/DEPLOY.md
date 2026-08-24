@@ -18,7 +18,7 @@ PostgreSQL (`postgresql.databases.svc.cluster.local`), created by the
 1. Go to https://console.cloud.google.com/apis/credentials (any project).
 2. *Create credentials → OAuth client ID → Web application*, name `hnf`.
 3. Authorized JavaScript origins:
-   - `https://hnf.alcocer.net`
+   - `https://hnf.linuxarena.net`
    - `https://hnf.k.alcocer.net`
    - `http://localhost:5173` (dev)
    (No redirect URIs needed: the app uses the Google Identity Services popup.)
@@ -32,7 +32,7 @@ PostgreSQL (`postgresql.databases.svc.cluster.local`), created by the
 
 In the Cloudflare Zero Trust dashboard, add a public hostname to the tunnel:
 
-    hnf.alcocer.net  ->  http://hnf-frontend.hnf.svc.cluster.local:80
+    hnf.linuxarena.net  ->  http://hnf-frontend.hnf.svc.cluster.local:80
 
 `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` already include the public name.
 
@@ -46,7 +46,7 @@ In the Cloudflare Zero Trust dashboard, add a public hostname to the tunnel:
 - `hnfctl` (the plan-review CLI):
 
       export HNF_ADMIN_TOKEN=$(kubectl get secret -n hnf hnf-admin -o jsonpath='{.data.ADMIN_API_TOKEN}' | base64 -d)
-      export HNF_API_URL=https://hnf.k.alcocer.net   # or https://hnf.alcocer.net
+      export HNF_API_URL=https://hnf.k.alcocer.net   # or https://hnf.linuxarena.net
       cli/hnfctl pending
 
   From Claude Code in this repo, the `hnf-plan` skill drives the whole

@@ -8,7 +8,7 @@ nutrition + exercise plan from the Claude Code CLI (see `cli/` and
 (distance, heart rate, pace...) and meal adherence, and the app tells them
 whether they are on track, with progress charts.
 
-Public URL: https://hnf.alcocer.net (via Cloudflare Tunnel).
+Public URL: https://hnf.linuxarena.net (via Cloudflare Tunnel).
 Internal URL: https://hnf.k.alcocer.net.
 
 ## Architecture

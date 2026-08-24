@@ -3,7 +3,7 @@
 #
 # Public exposure: cloudflared (token mode) is pointed at this Service from the
 # Cloudflare Zero Trust dashboard:
-#   hnf.alcocer.net -> http://hnf-frontend.hnf.svc.cluster.local:80
+#   hnf.linuxarena.net -> http://hnf-frontend.hnf.svc.cluster.local:80
 # Internal access: the Ingress below on hnf.k.alcocer.net.
 apiVersion: apps/v1
 kind: Deployment

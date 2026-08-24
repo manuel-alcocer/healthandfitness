@@ -2,7 +2,7 @@
 """hnfctl — admin CLI for the Health & Fitness app.
 
 Talks to the private admin API (X-Admin-Token). Configuration via env:
-  HNF_API_URL      base URL (default: https://hnf.alcocer.net)
+  HNF_API_URL      base URL (default: https://hnf.linuxarena.net)
   HNF_ADMIN_TOKEN  the admin token (in-cluster secret hnf-admin, key ADMIN_API_TOKEN)
 
 Commands:
@@ -21,7 +21,7 @@ import sys
 import urllib.error
 import urllib.request
 
-BASE = os.environ.get("HNF_API_URL", "https://hnf.alcocer.net").rstrip("/")
+BASE = os.environ.get("HNF_API_URL", "https://hnf.linuxarena.net").rstrip("/")
 TOKEN = os.environ.get("HNF_ADMIN_TOKEN", "")
 
 TEMPLATE = {
