@@ -3,7 +3,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api, ApiError } from "../api";
 import { useToast } from "../toast";
-import { ACTIVITY_LABELS, type MealLog, type NutritionEntry, type Plan } from "../types";
+import {
+  ACTIVITY_LABELS,
+  mealsForDate,
+  type MealLog,
+  type NutritionEntry,
+  type Plan,
+} from "../types";
 
 type Tab = "peso" | "actividad" | "comidas";
 
@@ -127,7 +133,7 @@ export default function LogPage() {
         });
         toast("Actividad registrada");
       } else {
-        const meals = (plan?.data.nutrition.meals ?? []).map((m) => {
+        const meals = (plan ? mealsForDate(plan.data, mealDate) : []).map((m) => {
           const log = mealLog[m.name];
           return {
             name: m.name,
@@ -359,7 +365,7 @@ export default function LogPage() {
             </div>
             {plan ? (
               <>
-                {plan.data.nutrition.meals.map((meal) => {
+                {mealsForDate(plan.data, mealDate).map((meal) => {
                   const log = mealLog[meal.name];
                   const eaten = log?.status === "full" || log?.status === "partial";
                   return (

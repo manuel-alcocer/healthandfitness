@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import {
   ACTIVITY_LABELS,
+  mealsForDate,
   type CalendarDay,
   type CalendarMonth,
   type Plan,
@@ -186,11 +187,12 @@ export default function CalendarGrid() {
                 onClick={() => setShowMeals(!showMeals)}
                 aria-expanded={showMeals}
               >
-                {showMeals ? "▾" : "▸"} Comidas del día ({plan.data.nutrition.meals.length})
+                {showMeals ? "▾" : "▸"} Comidas del día (
+                {mealsForDate(plan.data, selected.date).length})
               </button>
               {showMeals && (
                 <div style={{ marginTop: 4 }}>
-                  {plan.data.nutrition.meals.map((meal) => (
+                  {mealsForDate(plan.data, selected.date).map((meal) => (
                     <div key={meal.name} style={{ marginBottom: 8 }}>
                       <span className="meal-name" style={{ fontSize: 15 }}>
                         {meal.name}

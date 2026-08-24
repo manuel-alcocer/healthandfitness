@@ -11,13 +11,22 @@ through the admin API.
   "macros": { "protein_g": 120, "carbs_g": 180, "fat_g": 55 },
   "nutrition": {
     "guidelines": ["General nutrition rules (Spanish)"],
-    "meals": [
+    // PREFERRED: a weekly menu — exactly 7 entries (day 1=Monday..7=Sunday),
+    // each with that day's meals. Dishes should VARY across the week; 2-4
+    // options per meal per day is plenty.
+    "weekly_menu": [
       {
-        "name": "Desayuno",                   // used as the key for meal logging
-        "time": "08:00",                      // optional
-        "options": ["Option A", "Option B"]   // >= 1 concrete meal options
+        "day": 1,
+        "meals": [
+          {
+            "name": "Desayuno",               // used as the key for meal logging
+            "time": "08:00",                  // optional
+            "options": ["Option A", "Option B"]
+          }
+        ]
       }
     ]
+    // LEGACY (still accepted): "meals": [...] — one template repeated daily.
   },
   "exercise": {
     "guidelines": ["Warm-up rules, safety notes (Spanish)"],

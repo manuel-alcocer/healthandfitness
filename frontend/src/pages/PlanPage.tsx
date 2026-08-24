@@ -3,13 +3,20 @@ import { Link } from "react-router-dom";
 
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { ACTIVITY_LABELS, DAY_NAMES, type Plan } from "../types";
+import {
+  ACTIVITY_LABELS,
+  DAY_NAMES,
+  mealsForDay,
+  planDayOf,
+  type Plan,
+} from "../types";
 
 export default function PlanPage() {
   const { me } = useAuth();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [missing, setMissing] = useState(false);
   const [tab, setTab] = useState<"comida" | "ejercicio">("comida");
+  const [menuDay, setMenuDay] = useState(planDayOf(new Date().toISOString().slice(0, 10)));
 
   useEffect(() => {
     api<Plan>("/api/plan")
@@ -76,7 +83,22 @@ export default function PlanPage() {
 
       {tab === "comida" ? (
         <div className="card">
-          {d.nutrition.meals.map((meal) => (
+          {d.nutrition.weekly_menu?.length ? (
+            <div className="day-select" role="tablist" aria-label="Día de la semana">
+              {DAY_NAMES.map((label, i) => (
+                <button
+                  key={label}
+                  role="tab"
+                  aria-selected={menuDay === i + 1}
+                  className={menuDay === i + 1 ? "on" : ""}
+                  onClick={() => setMenuDay(i + 1)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {mealsForDay(d, menuDay).map((meal) => (
             <div className="meal-row" key={meal.name}>
               <div className="row-between">
                 <span className="meal-name">{meal.name}</span>

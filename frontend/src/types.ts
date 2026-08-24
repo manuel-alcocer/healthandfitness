@@ -76,9 +76,34 @@ export interface PlanData {
   summary: string;
   daily_calories: number;
   macros: { protein_g: number; carbs_g: number; fat_g: number };
-  nutrition: { guidelines?: string[]; meals: PlanMeal[] };
+  nutrition: {
+    guidelines?: string[];
+    // Preferred: a menu that changes through the week. Legacy plans carry a
+    // single daily template in `meals` instead.
+    weekly_menu?: { day: number; meals: PlanMeal[] }[];
+    meals?: PlanMeal[];
+  };
   exercise: { guidelines?: string[]; weekly_schedule: PlanSession[] };
   weekly_weight_targets: { week: number; date: string; weight_kg: number }[];
+}
+
+/** 1=Monday..7=Sunday for an ISO date (the plan's day convention). */
+export function planDayOf(iso: string): number {
+  const jsDay = new Date(iso + "T00:00:00").getDay();
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+/** The meals the plan stipulates for a given weekday (1..7). */
+export function mealsForDay(plan: PlanData, day: number): PlanMeal[] {
+  const menu = plan.nutrition.weekly_menu;
+  if (menu?.length) {
+    return menu.find((m) => m.day === day)?.meals ?? [];
+  }
+  return plan.nutrition.meals ?? [];
+}
+
+export function mealsForDate(plan: PlanData, iso: string): PlanMeal[] {
+  return mealsForDay(plan, planDayOf(iso));
 }
 
 export interface Plan {

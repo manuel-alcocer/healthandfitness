@@ -32,12 +32,26 @@ def validate_plan_data(data: dict) -> None:
         _require(isinstance(macros.get(key), int | float), f"macros.{key} is required")
 
     nutrition = data["nutrition"]
-    meals = nutrition.get("meals")
-    _require(isinstance(meals, list) and meals, "nutrition.meals must be a non-empty list")
-    for meal in meals:
-        _require(isinstance(meal.get("name"), str), "each meal needs a name")
-        _require(isinstance(meal.get("options"), list) and meal["options"],
-                 f"meal '{meal.get('name')}' needs options")
+
+    def _check_meals(meals, where):
+        _require(isinstance(meals, list) and meals, f"{where} must be a non-empty list")
+        for meal in meals:
+            _require(isinstance(meal.get("name"), str), f"each meal in {where} needs a name")
+            _require(isinstance(meal.get("options"), list) and meal["options"],
+                     f"meal '{meal.get('name')}' in {where} needs options")
+
+    # Preferred shape: a weekly menu with different dishes each day.
+    # Legacy shape (same meals every day): nutrition.meals.
+    menu = nutrition.get("weekly_menu")
+    if menu is not None:
+        _require(isinstance(menu, list) and len(menu) == 7,
+                 "nutrition.weekly_menu must have exactly 7 entries")
+        _require(sorted(d.get("day") for d in menu) == [1, 2, 3, 4, 5, 6, 7],
+                 "weekly_menu days must be exactly 1..7")
+        for entry in menu:
+            _check_meals(entry.get("meals"), f"weekly_menu day {entry.get('day')}")
+    else:
+        _check_meals(nutrition.get("meals"), "nutrition.meals")
 
     exercise = data["exercise"]
     schedule = exercise.get("weekly_schedule")

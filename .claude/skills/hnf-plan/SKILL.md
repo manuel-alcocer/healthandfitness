@@ -47,15 +47,16 @@ Weight-gain goals: same logic with ≤ 0.5 kg/week gain.
 - **Calories**: TDEE (in the bundle's `derived`) minus 300–600 kcal for loss
   (never below BMR or below 1200 F / 1500 M); plus 200–400 for gain.
 - **Macros**: protein 1.6–2.2 g/kg of target weight; fat ≥ 0.6 g/kg; rest carbs.
-- **Meals**: 3–5 meals matching `dietary_preferences` (respect allergies and
-  dislikes — never include an excluded food). **Variety is a feature**: the
-  user picks an option per meal in the app and uses the lists to plan their
-  shopping, so give **6–10 concrete Spanish/mediterranean options per meal**,
-  simple to cook. Rotate protein sources across the options (legumbres,
-  pescado blanco y azul, huevo, aves, carne roja magra, lácteos) and vary the
-  cooking styles (plancha, horno, guiso, ensalada, crema). Add a guideline
-  telling the user to rotate options (e.g. no repetir la misma más de dos
-  veces por semana; pescado 3-4 veces y legumbres 2-3 por semana).
+- **Meals**: ALWAYS use `nutrition.weekly_menu` (7 entries, day 1..7) — the
+  dishes must **change through the week** like a real menú semanal; a single
+  daily template repeated every day is exactly what the user complained
+  about. 3–5 meals per day matching `dietary_preferences` (respect allergies
+  and dislikes — never include an excluded food), with **2–4 concrete
+  Spanish/mediterranean options per meal per day**, simple to cook. Across
+  the week, rotate protein sources (legumbres 2-3 días, pescado blanco y azul
+  3-4, huevo, aves, carne roja magra ≤2) and cooking styles (plancha, horno,
+  guiso, ensalada, crema). Align with training: more carbs the day of the
+  long session. The user uses the menu to plan the week's shopping.
 - **Exercise**: exactly 7 entries (day 1..7), sessions on
   `training_days_per_week` days, rest on the others. Use ONLY activities from
   `preferred_activities` and available `equipment`. Progressive volume,

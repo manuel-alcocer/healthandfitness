@@ -206,3 +206,34 @@ def test_calendar_endpoint(api, active_goal):
     assert len(resp.data["days"]) == 31
     resp = api.get("/api/calendar?month=nonsense")
     assert resp.status_code == 200  # falls back to current month
+
+
+# --- Weekly menu schema -----------------------------------------------------
+
+
+def test_plan_accepts_weekly_menu(admin_api, pending_goal, user):
+    plan = make_plan_data()
+    daily_meals = plan["nutrition"].pop("meals")
+    plan["nutrition"]["weekly_menu"] = [
+        {"day": d, "meals": daily_meals} for d in range(1, 8)
+    ]
+    resp = admin_api.post(
+        f"/api/admin/users/{user.id}/plan",
+        {"feasibility": "realistic", "message": "menu semanal", "plan": plan},
+        format="json",
+    )
+    assert resp.status_code == 200, resp.data
+
+
+def test_plan_rejects_incomplete_weekly_menu(admin_api, pending_goal, user):
+    plan = make_plan_data()
+    daily_meals = plan["nutrition"].pop("meals")
+    plan["nutrition"]["weekly_menu"] = [
+        {"day": d, "meals": daily_meals} for d in range(1, 6)  # only 5 days
+    ]
+    resp = admin_api.post(
+        f"/api/admin/users/{user.id}/plan",
+        {"feasibility": "realistic", "message": "x", "plan": plan},
+        format="json",
+    )
+    assert resp.status_code == 400
