@@ -16,7 +16,7 @@ data:
   CORS_ALLOWED_ORIGINS: 'https://hnf.linuxarena.net,https://hnf.k.alcocer.net'
   # Google OAuth web client id (not a secret). Set it after creating the OAuth
   # client in Google Cloud Console — see docs/DEPLOY.md. Empty disables login.
-  GOOGLE_CLIENT_ID: ''
+  GOOGLE_CLIENT_ID: '208573007225-24iarsls0rmr2328pmg9mm793l79dve4.apps.googleusercontent.com'
   ADMIN_EMAIL: 'm.alcocer1978@gmail.com'
   ACCESS_TOKEN_LIFETIME_MINUTES: '120'
   REFRESH_TOKEN_LIFETIME_DAYS: '30'
