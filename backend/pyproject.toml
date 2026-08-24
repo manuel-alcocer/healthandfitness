@@ -1,0 +1,35 @@
+[project]
+name = "hnf-backend"
+version = "0.1.0"
+description = "Health & Fitness: weight-goal and exercise planning backend"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=6.0,<6.1",
+    "djangorestframework>=3.17",
+    "djangorestframework-simplejwt>=5.5",
+    "django-cors-headers>=4.9",
+    "django-environ>=0.14",
+    "psycopg[binary]>=3.2",
+    "gunicorn>=23.0",
+    "whitenoise>=6.9",
+    "google-auth>=2.40",
+    "requests>=2.32",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.12",
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py"]
