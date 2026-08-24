@@ -114,7 +114,8 @@ def test_resubmit_after_suggestion(admin_api, pending_goal, user, api):
     # Instead of accepting, the user submits a softer goal -> a fresh pending goal.
     resp = api.post(
         "/api/goal",
-        {"target_weight_kg": "73.00", "target_date": (date.today() + timedelta(weeks=26)).isoformat()},
+        {"target_weight_kg": "73.00",
+         "target_date": (date.today() + timedelta(weeks=26)).isoformat()},
         format="json",
     )
     assert resp.status_code == 201

@@ -32,7 +32,7 @@ def expected_weight_at(targets: list[dict], on: date) -> float | None:
         return points[0][1]
     if on >= points[-1][0]:
         return points[-1][1]
-    for (d0, w0), (d1, w1) in zip(points, points[1:]):
+    for (d0, w0), (d1, w1) in zip(points, points[1:], strict=False):
         if d0 <= on <= d1:
             span = (d1 - d0).days or 1
             frac = (on - d0).days / span

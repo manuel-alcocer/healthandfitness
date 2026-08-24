@@ -74,7 +74,8 @@ def test_profile_create_then_goal(api):
 
     resp = api.post(
         "/api/goal",
-        {"target_weight_kg": "85.00", "target_date": (date.today() + timedelta(weeks=12)).isoformat()},
+        {"target_weight_kg": "85.00",
+         "target_date": (date.today() + timedelta(weeks=12)).isoformat()},
         format="json",
     )
     assert resp.status_code == 201, resp.data
@@ -84,7 +85,8 @@ def test_profile_create_then_goal(api):
     # A second goal while one is pending is rejected.
     resp = api.post(
         "/api/goal",
-        {"target_weight_kg": "80.00", "target_date": (date.today() + timedelta(weeks=20)).isoformat()},
+        {"target_weight_kg": "80.00",
+         "target_date": (date.today() + timedelta(weeks=20)).isoformat()},
         format="json",
     )
     assert resp.status_code == 409
@@ -93,7 +95,8 @@ def test_profile_create_then_goal(api):
 def test_goal_requires_profile(api):
     resp = api.post(
         "/api/goal",
-        {"target_weight_kg": "85.00", "target_date": (date.today() + timedelta(weeks=12)).isoformat()},
+        {"target_weight_kg": "85.00",
+         "target_date": (date.today() + timedelta(weeks=12)).isoformat()},
         format="json",
     )
     assert resp.status_code == 400
@@ -102,7 +105,8 @@ def test_goal_requires_profile(api):
 def test_goal_rejects_next_week_deadline(api, profile):
     resp = api.post(
         "/api/goal",
-        {"target_weight_kg": "70.00", "target_date": (date.today() + timedelta(days=3)).isoformat()},
+        {"target_weight_kg": "70.00",
+         "target_date": (date.today() + timedelta(days=3)).isoformat()},
         format="json",
     )
     assert resp.status_code == 400
