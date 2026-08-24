@@ -141,7 +141,7 @@ a {
 
 .content {
   flex: 1;
-  padding: 8px 16px calc(96px + env(safe-area-inset-bottom));
+  padding: 8px 16px calc(100px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -166,7 +166,7 @@ a {
   width: min(640px, 100%);
   background: var(--surface);
   border-top: 1px solid var(--line);
-  padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+  padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
 }
 
 .tab {
@@ -174,16 +174,16 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 2px;
-  font-size: 11px;
+  padding: 4px 2px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--ink-3);
   text-decoration: none;
 }
 
 .tab svg {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
 }
 
 .tab.active {
@@ -191,25 +191,27 @@ a {
 }
 
 .tab-log {
-  position: relative;
-  top: -18px;
   color: #fff;
 }
 
+/* The log button floats half above the bar (negative margin, so it does NOT
+   stretch the bar's height) with a surface ring to detach it from content. */
 .tab-log .tab-log-btn {
-  width: 56px;
-  height: 56px;
+  width: 46px;
+  height: 46px;
+  margin-top: -20px;
   border-radius: 50%;
   background: var(--brand);
+  border: 3px solid var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgb(15 123 95 / 0.4);
+  box-shadow: 0 4px 12px rgb(15 123 95 / 0.35);
 }
 
 .tab-log .tab-log-btn svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
 }
 
 .tab-log span {
@@ -625,7 +627,7 @@ a {
 /* Toast */
 .toast {
   position: fixed;
-  bottom: calc(104px + env(safe-area-inset-bottom));
+  bottom: calc(88px + env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   background: var(--ink);
