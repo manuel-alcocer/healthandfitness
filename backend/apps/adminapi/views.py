@@ -32,7 +32,7 @@ class UserListView(AdminView):
     def get(self, request):
         wanted = request.query_params.get("status")
         out = []
-        for user in User.objects.filter(is_superuser=False).order_by("date_joined"):
+        for user in User.objects.all().order_by("date_joined"):
             goal = user.goals.first()
             if wanted and (not goal or goal.status != wanted):
                 continue
@@ -52,7 +52,7 @@ class UserBundleView(AdminView):
 
     def get(self, request, user_id):
         try:
-            user = User.objects.get(pk=user_id, is_superuser=False)
+            user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
         profile = Profile.objects.filter(user=user).first()
@@ -95,7 +95,7 @@ class SubmitPlanView(AdminView):
 
     def post(self, request, user_id):
         try:
-            user = User.objects.get(pk=user_id, is_superuser=False)
+            user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
         goal = user.goals.first()
@@ -150,7 +150,7 @@ class UserProgressView(AdminView):
 
     def get(self, request, user_id):
         try:
-            user = User.objects.get(pk=user_id, is_superuser=False)
+            user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
         data = compute_progress(user)
