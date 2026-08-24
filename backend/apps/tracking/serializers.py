@@ -70,4 +70,7 @@ class NutritionEntrySerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Each meal needs name and status")
             if meal["status"] not in ("full", "partial", "skipped"):
                 raise serializers.ValidationError("status must be full|partial|skipped")
+            # Optional: which of the plan's options was actually eaten.
+            if "option" in meal and not isinstance(meal["option"], str):
+                raise serializers.ValidationError("option must be a string")
         return value

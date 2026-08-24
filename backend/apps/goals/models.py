@@ -30,6 +30,12 @@ class Goal(models.Model):
     motivation = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
 
+    # Plan-revision request: the user changed what exercise they are willing
+    # to do (or other circumstances) and asks the coach for an updated plan.
+    # The current plan stays active while the revision is prepared.
+    revision_requested = models.BooleanField(default=False)
+    revision_note = models.TextField(blank=True)
+
     # Review outcome (set through the admin API)
     admin_message = models.TextField(blank=True)
     suggested_target_weight_kg = models.DecimalField(

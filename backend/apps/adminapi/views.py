@@ -34,7 +34,15 @@ class UserListView(AdminView):
         out = []
         for user in User.objects.all().order_by("date_joined"):
             goal = user.goals.first()
-            if wanted and (not goal or goal.status != wanted):
+            if wanted and not goal:
+                continue
+            # "pending" is the review queue: fresh goals AND active goals whose
+            # user asked for a plan revision.
+            if wanted == "pending":
+                awaiting = goal.status == "pending" or goal.revision_requested
+                if not awaiting:
+                    continue
+            elif wanted and goal.status != wanted:
                 continue
             profile = Profile.objects.filter(user=user).first()
             out.append(
@@ -99,7 +107,10 @@ class SubmitPlanView(AdminView):
         except User.DoesNotExist:
             return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
         goal = user.goals.first()
-        if not goal or goal.status not in (Goal.Status.PENDING, Goal.Status.SUGGESTED):
+        is_revision = bool(goal and goal.status == Goal.Status.ACTIVE and goal.revision_requested)
+        if not goal or (
+            goal.status not in (Goal.Status.PENDING, Goal.Status.SUGGESTED) and not is_revision
+        ):
             return Response(
                 {"detail": "User has no goal awaiting review"},
                 status=status.HTTP_409_CONFLICT,
@@ -122,6 +133,7 @@ class SubmitPlanView(AdminView):
 
         goal.admin_message = message
         goal.reviewed_at = timezone.now()
+        goal.revision_requested = False
         if feasibility == "realistic":
             goal.status = Goal.Status.ACTIVE
             goal.suggested_target_weight_kg = None

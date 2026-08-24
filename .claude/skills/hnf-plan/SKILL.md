@@ -61,6 +61,24 @@ Weight-gain goals: same logic with ≤ 0.5 kg/week gain.
   linear otherwise; last point = target weight on the target date.
 - Adapt to `health_conditions` (e.g. knee injury → swim/bike over run).
 
+## Plan revisions
+
+`hnfctl pending` also lists users with an ACTIVE goal marked `+revision`:
+they changed the exercise they are willing to do (new `preferred_activities`
+/ `training_days_per_week` in the profile) and asked for an updated plan.
+The goal's `revision_note` says why — read it and honor it.
+
+For a revision, rebuild the plan for the SAME goal but from where the user is
+NOW: current weight = latest entry in `recent_weights` (fall back to
+`start_weight_kg`), remaining time = today → `target_date`, and the NEW
+activity preferences. `weekly_weight_targets` restarts at week 0 = today with
+the current weight. Re-check feasibility for the REMAINING stretch: if it is
+no longer healthy, submit as `unrealistic` with a `suggested_goal` (usually
+the same target weight with a later date). Submit with `feasibility:
+realistic` otherwise — the goal stays active, the plan is replaced, and the
+`message` should acknowledge what changed («He cambiado tus sesiones de
+carrera por natación, como pediste»).
+
 ## Follow-up reviews
 
 `cli/hnfctl progress <id>` shows the same verdict the user sees. Use it when

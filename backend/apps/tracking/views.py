@@ -1,7 +1,10 @@
+from datetime import date
+
 from rest_framework import mixins, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .calendar import compute_calendar
 from .models import ActivityEntry, NutritionEntry, WeightEntry
 from .progress import compute_progress, weekly_summary
 from .serializers import (
@@ -63,6 +66,20 @@ class NutritionEntryViewSet(OwnedModelViewSet):
             serializer.save()
             return Response(serializer.data)
         return super().create(request, *args, **kwargs)
+
+
+class CalendarView(APIView):
+    """Month grid of daily compliance levels (red/yellow/green/medal)."""
+
+    def get(self, request):
+        raw = request.query_params.get("month", "")
+        try:
+            year, month = (int(p) for p in raw.split("-"))
+            date(year, month, 1)
+        except (ValueError, TypeError):
+            today = date.today()
+            year, month = today.year, today.month
+        return Response(compute_calendar(request.user, year, month))
 
 
 class ProgressView(APIView):

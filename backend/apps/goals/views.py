@@ -40,6 +40,23 @@ class GoalView(APIView):
         return Response(GoalSerializer(goal).data, status=status.HTTP_201_CREATED)
 
 
+class RequestRevisionView(APIView):
+    """Ask the coach for an updated plan (e.g. after changing preferred
+    activities in the profile). The current plan stays active meanwhile."""
+
+    def post(self, request):
+        goal = Goal.objects.filter(user=request.user, status=Goal.Status.ACTIVE).first()
+        if not goal:
+            return Response(
+                {"detail": "Necesitas un plan activo para pedir una revisión"},
+                status=status.HTTP_409_CONFLICT,
+            )
+        goal.revision_requested = True
+        goal.revision_note = str(request.data.get("note", ""))[:2000]
+        goal.save(update_fields=["revision_requested", "revision_note", "updated_at"])
+        return Response(GoalSerializer(goal).data)
+
+
 class AcceptSuggestionView(APIView):
     """Accept the admin's alternative goal after an unrealistic request."""
 

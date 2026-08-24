@@ -61,3 +61,29 @@ through the admin API.
 - `unrealistic` → the goal becomes `suggested`; the user sees the message and
   the alternative goal, and can accept it (plan activates) or resubmit a new
   goal.
+
+## Plan revisions
+
+A user with an active plan can request a revision (they changed which
+exercise they are willing to do). The goal gets `revision_requested: true` +
+`revision_note`, and shows up in the admin pending queue. Submitting a
+`realistic` plan for such a goal replaces the plan document, clears the flag
+and keeps the goal active. The new `weekly_weight_targets` must restart at
+week 0 = submission day with the user's CURRENT weight.
+
+## Daily compliance (calendar)
+
+`GET /api/calendar?month=YYYY-MM` buckets each tracked day by how much of
+the stipulated day was done — meals adherence (`full`=1, `partial`=0.5,
+`skipped`=0, averaged) and, on days with a planned session, the fulfillment
+ratio against its distance (or duration) target:
+
+| level  | meaning                                   | score        |
+|--------|-------------------------------------------|--------------|
+| red    | nothing or very little                    | < 0.5        |
+| yellow | part of the day fulfilled                 | 0.5 – 0.8    |
+| green  | almost everything                         | 0.8 – 1      |
+| medal  | everything, or more (target exceeded)     | 1            |
+
+Meal logs may carry an optional `option` per meal: which of the plan's
+options the user actually ate.

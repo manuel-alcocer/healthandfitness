@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../api";
+import { useAuth } from "../auth";
 import { ACTIVITY_LABELS, DAY_NAMES, type Plan } from "../types";
 
 export default function PlanPage() {
+  const { me } = useAuth();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [missing, setMissing] = useState(false);
   const [tab, setTab] = useState<"comida" | "ejercicio">("comida");
@@ -28,8 +31,19 @@ export default function PlanPage() {
   return (
     <div className="stack">
       <div className="card">
-        <div className="eyebrow">Tu plan</div>
+        <div className="row-between">
+          <div className="eyebrow">Tu plan</div>
+          {me?.goal?.revision_requested && (
+            <span className="chip plan">Actualización pedida</span>
+          )}
+        </div>
         <p style={{ margin: "6px 0 0" }}>{d.summary}</p>
+        {!me?.goal?.revision_requested && (
+          <p className="hint muted" style={{ margin: "8px 0 0" }}>
+            ¿Ya no te encaja el ejercicio? Pide una actualización desde{" "}
+            <Link to="/perfil">tu perfil</Link>.
+          </p>
+        )}
       </div>
 
       <div className="tiles">

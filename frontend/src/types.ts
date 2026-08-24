@@ -34,6 +34,8 @@ export interface Goal {
   target_date: string;
   motivation: string;
   status: GoalStatus;
+  revision_requested: boolean;
+  revision_note: string;
   admin_message: string;
   suggested_target_weight_kg: string | null;
   suggested_target_date: string | null;
@@ -145,14 +147,41 @@ export interface ActivityEntry {
   notes: string;
 }
 
+export interface MealLog {
+  name: string;
+  status: "full" | "partial" | "skipped";
+  option?: string;
+}
+
 export interface NutritionEntry {
   id: number;
   date: string;
-  meals: { name: string; status: "full" | "partial" | "skipped" }[];
+  meals: MealLog[];
   calories_estimate: number | null;
   water_l: string | null;
   notes: string;
   adherence: number | null;
+}
+
+export type DayLevel = "none" | "red" | "yellow" | "green" | "medal";
+
+export interface CalendarDay {
+  date: string;
+  level: DayLevel;
+  score?: number;
+  nutrition_adherence?: number | null;
+  planned?: string | null;
+  exercise_ratio?: number | null;
+  activities?: number;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  today: string;
+  tracked_from: string | null;
+  medals: number;
+  days: CalendarDay[];
 }
 
 export const ACTIVITY_LABELS: Record<string, string> = {

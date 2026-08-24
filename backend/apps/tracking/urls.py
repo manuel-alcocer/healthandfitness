@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ActivityEntryViewSet,
+    CalendarView,
     NutritionEntryViewSet,
     ProgressView,
     WeightEntryViewSet,
@@ -15,5 +16,6 @@ router.register("tracking/nutrition", NutritionEntryViewSet, basename="nutrition
 
 urlpatterns = [
     path("progress", ProgressView.as_view()),
+    path("calendar", CalendarView.as_view()),
     path("", include(router.urls)),
 ]

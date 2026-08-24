@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { api, ApiError } from "../api";
 import { useToast } from "../toast";
-import { ACTIVITY_LABELS, type NutritionEntry, type Plan } from "../types";
+import { ACTIVITY_LABELS, type MealLog, type NutritionEntry, type Plan } from "../types";
 
 type Tab = "peso" | "actividad" | "comidas";
 
@@ -60,27 +60,36 @@ export default function LogPage() {
   }, [activity.distance_km, activity.duration_min]);
 
   // --- Nutrition form (from the plan's meals) ---
+  // Any past day can be (re)logged: pick the date, the existing entry loads,
+  // and saving upserts it — that is how past days are corrected too.
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [mealStatus, setMealStatus] = useState<Record<string, "full" | "partial" | "skipped">>({});
+  const [mealDate, setMealDate] = useState(params.get("fecha") || todayISO());
+  const [mealLog, setMealLog] = useState<Record<string, MealLog>>({});
   const [water, setWater] = useState("");
   const [nutritionNotes, setNutritionNotes] = useState("");
+  const [nutritionEntries, setNutritionEntries] = useState<NutritionEntry[]>([]);
 
   useEffect(() => {
     api<Plan>("/api/plan").then(setPlan).catch(() => {});
-    // Preload today's nutrition entry so re-editing is natural.
-    api<{ results: NutritionEntry[] }>(`/api/tracking/nutrition?limit=50`)
-      .then((r) => {
-        const today = r.results.find((e) => e.date === todayISO());
-        if (today) {
-          const map: Record<string, "full" | "partial" | "skipped"> = {};
-          today.meals.forEach((m) => (map[m.name] = m.status));
-          setMealStatus(map);
-          if (today.water_l) setWater(today.water_l);
-          setNutritionNotes(today.notes);
-        }
-      })
+    api<{ results: NutritionEntry[] }>(`/api/tracking/nutrition?limit=200`)
+      .then((r) => setNutritionEntries(r.results))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const existing = nutritionEntries.find((e) => e.date === mealDate);
+    const map: Record<string, MealLog> = {};
+    existing?.meals.forEach((m) => (map[m.name] = m));
+    setMealLog(map);
+    setWater(existing?.water_l ?? "");
+    setNutritionNotes(existing?.notes ?? "");
+  }, [mealDate, nutritionEntries]);
+
+  const setMeal = (name: string, patch: Partial<MealLog>) =>
+    setMealLog((cur) => {
+      const base: MealLog = cur[name] ?? { name, status: "skipped" };
+      return { ...cur, [name]: { ...base, ...patch } };
+    });
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -118,13 +127,17 @@ export default function LogPage() {
         });
         toast("Actividad registrada");
       } else {
-        const meals = (plan?.data.nutrition.meals ?? []).map((m) => ({
-          name: m.name,
-          status: mealStatus[m.name] ?? "skipped",
-        }));
+        const meals = (plan?.data.nutrition.meals ?? []).map((m) => {
+          const log = mealLog[m.name];
+          return {
+            name: m.name,
+            status: log?.status ?? "skipped",
+            ...(log?.option ? { option: log.option } : {}),
+          };
+        });
         await api("/api/tracking/nutrition", {
           method: "POST",
-          body: { date: todayISO(), meals, water_l: water || null, notes: nutritionNotes },
+          body: { date: mealDate, meals, water_l: water || null, notes: nutritionNotes },
         });
         toast("Comidas registradas");
       }
@@ -330,35 +343,70 @@ export default function LogPage() {
 
         {tab === "comidas" && (
           <>
-            <h2>Comidas de hoy</h2>
+            <h2>{mealDate === todayISO() ? "Comidas de hoy" : "Comidas del día"}</h2>
+            <div className="field">
+              <label htmlFor="n-date">Día</label>
+              <input
+                id="n-date"
+                type="date"
+                max={todayISO()}
+                value={mealDate}
+                onChange={(e) => setMealDate(e.target.value)}
+              />
+              <span className="hint">
+                Puedes corregir cualquier día pasado: elige la fecha y guarda.
+              </span>
+            </div>
             {plan ? (
               <>
-                {plan.data.nutrition.meals.map((meal) => (
-                  <div className="meal-row" key={meal.name}>
-                    <div className="row-between">
-                      <span className="meal-name">{meal.name}</span>
-                      {meal.time && <span className="meal-time">{meal.time}</span>}
+                {plan.data.nutrition.meals.map((meal) => {
+                  const log = mealLog[meal.name];
+                  const eaten = log?.status === "full" || log?.status === "partial";
+                  return (
+                    <div className="meal-row" key={meal.name}>
+                      <div className="row-between">
+                        <span className="meal-name">{meal.name}</span>
+                        {meal.time && <span className="meal-time">{meal.time}</span>}
+                      </div>
+                      <div className="segmented">
+                        {(
+                          [
+                            ["full", "Según plan"],
+                            ["partial", "A medias"],
+                            ["skipped", "Me lo salté"],
+                          ] as const
+                        ).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={log?.status === value ? "on" : ""}
+                            onClick={() => setMeal(meal.name, { status: value })}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {eaten && meal.options.length > 1 && (
+                        <div className="chip-select">
+                          {meal.options.map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              className={log?.option === option ? "on" : ""}
+                              onClick={() =>
+                                setMeal(meal.name, {
+                                  option: log?.option === option ? undefined : option,
+                                })
+                              }
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="segmented">
-                      {(
-                        [
-                          ["full", "Según plan"],
-                          ["partial", "A medias"],
-                          ["skipped", "Me lo salté"],
-                        ] as const
-                      ).map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          className={mealStatus[meal.name] === value ? "on" : ""}
-                          onClick={() => setMealStatus({ ...mealStatus, [meal.name]: value })}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="field" style={{ marginTop: 12 }}>
                   <label htmlFor="n-water">Agua (litros, opcional)</label>
                   <input

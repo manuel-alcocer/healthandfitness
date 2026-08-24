@@ -16,6 +16,8 @@ class GoalSerializer(serializers.ModelSerializer):
             "target_date",
             "motivation",
             "status",
+            "revision_requested",
+            "revision_note",
             "admin_message",
             "suggested_target_weight_kg",
             "suggested_target_date",
@@ -27,6 +29,8 @@ class GoalSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "status",
+            "revision_requested",
+            "revision_note",
             "admin_message",
             "suggested_target_weight_kg",
             "suggested_target_date",

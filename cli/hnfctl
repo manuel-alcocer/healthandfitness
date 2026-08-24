@@ -96,11 +96,11 @@ def cmd_users(status=None):
         return
     for row in data["results"]:
         user, goal = row["user"], row["goal"]
-        goal_txt = (
-            f"{goal['target_weight_kg']}kg by {goal['target_date']} [{goal['status']}]"
-            if goal
-            else "no goal"
-        )
+        if goal:
+            state = goal["status"] + ("+revision" if goal.get("revision_requested") else "")
+            goal_txt = f"{goal['target_weight_kg']}kg by {goal['target_date']} [{state}]"
+        else:
+            goal_txt = "no goal"
         profile = "profile ok" if row["has_profile"] else "NO PROFILE"
         print(f"#{user['id']:>3}  {user['email']:<32} {profile:<11} {goal_txt}")
 

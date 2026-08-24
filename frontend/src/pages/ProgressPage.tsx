@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "../api";
+import CalendarGrid from "../components/CalendarGrid";
 import VolumeChart from "../components/VolumeChart";
 import WeightChart from "../components/WeightChart";
 import type { Progress } from "../types";
@@ -29,6 +30,11 @@ export default function ProgressPage() {
 
   return (
     <div className="stack">
+      <h2 className="section-title">Tu calendario</h2>
+      <div className="card">
+        <CalendarGrid />
+      </div>
+
       <h2 className="section-title">Evolución del peso</h2>
       <div className="card chart-card">
         {progress.weight_series?.length ? (
