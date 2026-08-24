@@ -60,7 +60,21 @@ def test_request_revision_flow(api, admin_api, active_goal, user):
     assert admin_api.get("/api/admin/users?status=pending").data["count"] == 0
 
 
-def test_submit_plan_rejected_without_revision_request(admin_api, active_goal, user):
+def test_coach_can_update_active_plan_anytime(admin_api, active_goal, user):
+    resp = admin_api.post(
+        f"/api/admin/users/{user.id}/plan",
+        {"feasibility": "realistic", "message": "Más variedad de comidas",
+         "plan": make_plan_data()},
+        format="json",
+    )
+    assert resp.status_code == 200
+    goal = Goal.objects.get(pk=active_goal.pk)
+    assert goal.status == Goal.Status.ACTIVE
+
+
+def test_submit_plan_rejected_for_terminal_goal(admin_api, active_goal, user):
+    active_goal.status = Goal.Status.CANCELLED
+    active_goal.save()
     resp = admin_api.post(
         f"/api/admin/users/{user.id}/plan",
         {"feasibility": "realistic", "message": "x", "plan": make_plan_data()},

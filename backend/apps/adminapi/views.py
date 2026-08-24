@@ -107,12 +107,12 @@ class SubmitPlanView(AdminView):
         except User.DoesNotExist:
             return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
         goal = user.goals.first()
-        is_revision = bool(goal and goal.status == Goal.Status.ACTIVE and goal.revision_requested)
-        if not goal or (
-            goal.status not in (Goal.Status.PENDING, Goal.Status.SUGGESTED) and not is_revision
-        ):
+        # The coach can (re)submit a plan for any live goal: fresh reviews,
+        # suggestion re-reviews, user-requested revisions AND proactive
+        # updates of an active plan. Only terminal goals are off-limits.
+        if not goal or goal.status in (Goal.Status.COMPLETED, Goal.Status.CANCELLED):
             return Response(
-                {"detail": "User has no goal awaiting review"},
+                {"detail": "User has no live goal to attach a plan to"},
                 status=status.HTTP_409_CONFLICT,
             )
 
