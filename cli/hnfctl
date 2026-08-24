@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""hnfctl — admin CLI for the Health & Fitness app.
+
+Talks to the private admin API (X-Admin-Token). Configuration via env:
+  HNF_API_URL      base URL (default: https://hnf.alcocer.net)
+  HNF_ADMIN_TOKEN  the admin token (in-cluster secret hnf-admin, key ADMIN_API_TOKEN)
+
+Commands:
+  hnfctl pending                 users waiting for a plan
+  hnfctl users [--status S]      list users (goal status filter)
+  hnfctl show <id>               full user bundle (input for plan generation)
+  hnfctl progress <id>           the user's progress payload
+  hnfctl submit-plan <id> FILE   submit a review file (see 'hnfctl template')
+  hnfctl template                print a submission skeleton to stdout
+"""
+
+import argparse
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+BASE = os.environ.get("HNF_API_URL", "https://hnf.alcocer.net").rstrip("/")
+TOKEN = os.environ.get("HNF_ADMIN_TOKEN", "")
+
+TEMPLATE = {
+    "feasibility": "realistic | unrealistic",
+    "message": "Mensaje para el usuario (en español).",
+    "suggested_goal": {
+        "target_weight_kg": "solo si unrealistic",
+        "target_date": "YYYY-MM-DD (solo si unrealistic)",
+    },
+    "plan": {
+        "summary": "Resumen del plan en una frase.",
+        "daily_calories": 1800,
+        "macros": {"protein_g": 120, "carbs_g": 180, "fat_g": 55},
+        "nutrition": {
+            "guidelines": ["..."],
+            "meals": [
+                {"name": "Desayuno", "time": "08:00", "options": ["...", "..."]},
+            ],
+        },
+        "exercise": {
+            "guidelines": ["..."],
+            "weekly_schedule": [
+                {
+                    "day": 1,
+                    "type": "walk|run|swim|bike|gym|hike|other|rest",
+                    "title": "...",
+                    "target": {
+                        "distance_km": 5,
+                        "duration_min": 60,
+                        "hr_zone": "Z2",
+                        "pace_min_km": "7:00",
+                    },
+                    "details": "...",
+                },
+            ],
+        },
+        "weekly_weight_targets": [
+            {"week": 0, "date": "YYYY-MM-DD", "weight_kg": 90.0},
+        ],
+    },
+}
+
+
+def call(method: str, path: str, payload=None):
+    if not TOKEN:
+        sys.exit("HNF_ADMIN_TOKEN is not set")
+    req = urllib.request.Request(
+        BASE + path,
+        method=method,
+        headers={"X-Admin-Token": TOKEN, "Content-Type": "application/json"},
+        data=json.dumps(payload).encode() if payload is not None else None,
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.load(resp)
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode(errors="replace")
+        sys.exit(f"HTTP {exc.code}: {body}")
+    except urllib.error.URLError as exc:
+        sys.exit(f"Cannot reach {BASE}: {exc.reason}")
+
+
+def pretty(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def cmd_users(status=None):
+    query = f"?status={status}" if status else ""
+    data = call("GET", f"/api/admin/users{query}")
+    if not data["results"]:
+        print("No users found.")
+        return
+    for row in data["results"]:
+        user, goal = row["user"], row["goal"]
+        goal_txt = (
+            f"{goal['target_weight_kg']}kg by {goal['target_date']} [{goal['status']}]"
+            if goal
+            else "no goal"
+        )
+        profile = "profile ok" if row["has_profile"] else "NO PROFILE"
+        print(f"#{user['id']:>3}  {user['email']:<32} {profile:<11} {goal_txt}")
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="hnfctl")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("pending")
+    p_users = sub.add_parser("users")
+    p_users.add_argument("--status")
+    for name in ("show", "progress"):
+        p = sub.add_parser(name)
+        p.add_argument("user_id", type=int)
+    p_submit = sub.add_parser("submit-plan")
+    p_submit.add_argument("user_id", type=int)
+    p_submit.add_argument("file")
+    sub.add_parser("template")
+    args = parser.parse_args()
+
+    if args.cmd == "pending":
+        cmd_users("pending")
+    elif args.cmd == "users":
+        cmd_users(args.status)
+    elif args.cmd == "show":
+        pretty(call("GET", f"/api/admin/users/{args.user_id}/bundle"))
+    elif args.cmd == "progress":
+        pretty(call("GET", f"/api/admin/users/{args.user_id}/progress"))
+    elif args.cmd == "template":
+        pretty(TEMPLATE)
+    elif args.cmd == "submit-plan":
+        with open(args.file) as fh:
+            payload = json.load(fh)
+        result = call("POST", f"/api/admin/users/{args.user_id}/plan", payload)
+        goal = result["goal"]
+        print(f"OK — goal status is now '{goal['status']}'")
+
+
+if __name__ == "__main__":
+    main()

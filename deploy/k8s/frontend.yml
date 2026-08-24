@@ -1,0 +1,109 @@
+# The public entry point. nginx serves the built SPA and proxies /api, /admin
+# and /static to the backend, so the browser only ever sees one origin.
+#
+# Public exposure: cloudflared (token mode) is pointed at this Service from the
+# Cloudflare Zero Trust dashboard:
+#   hnf.alcocer.net -> http://hnf-frontend.hnf.svc.cluster.local:80
+# Internal access: the Ingress below on hnf.k.alcocer.net.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hnf-frontend
+  namespace: hnf
+  labels:
+    app.kubernetes.io/name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+    spec:
+      securityContext:
+        # nginx-unprivileged's own uid; it binds 8080 and needs no capabilities.
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: ghcr.io/manuel-alcocer/hnf-frontend:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BACKEND_URL
+              value: http://hnf-backend:8000
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ['ALL']
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hnf-frontend
+  namespace: hnf
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hnf-frontend
+  namespace: hnf
+  annotations:
+    cert-manager.io/cluster-issuer: clusterissuer-he
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: hnf.k.alcocer.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hnf-frontend
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - hnf.k.alcocer.net
+      secretName: hnf-tls

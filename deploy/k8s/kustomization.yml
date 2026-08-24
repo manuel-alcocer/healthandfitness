@@ -1,0 +1,20 @@
+namespace: hnf
+
+resources:
+  - namespace.yml
+  - configmap.yml
+  - secrets.yml
+  - db-init-job.yml
+  - backend.yml
+  - frontend.yml
+  - migrate-job.yml
+
+# Bumped by CI (.github/workflows/release.yml) on every push to main: it builds
+# the multi-arch images (amd64 + arm64), rewrites the `newTag`s below and
+# commits them back ([skip ci]). ArgoCD watches main and redeploys when they
+# change. Both images share the same tag.
+images:
+  - name: ghcr.io/manuel-alcocer/hnf-backend
+    newTag: latest
+  - name: ghcr.io/manuel-alcocer/hnf-frontend
+    newTag: latest

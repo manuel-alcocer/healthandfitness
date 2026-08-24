@@ -1,0 +1,59 @@
+# Migrations + admin bootstrap, as a PostSync hook so it runs after the
+# database exists and the new image is the one ArgoCD just rolled out.
+# `ensure_admin` is idempotent: it re-asserts the superuser from the secret.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hnf-migrate
+  namespace: hnf
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/manuel-alcocer/hnf-backend:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              python manage.py migrate --noinput
+              python manage.py ensure_admin
+          envFrom:
+            - configMapRef:
+                name: hnf-config
+            - secretRef:
+                name: hnf-django
+            - secretRef:
+                name: hnf-db
+            - secretRef:
+                name: hnf-admin
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: '1'
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

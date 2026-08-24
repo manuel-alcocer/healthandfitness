@@ -1,0 +1,26 @@
+# ArgoCD Application for Health & Fitness. It lives in the app's OWN repo; the
+# app-of-apps entry in k8s-home-apps (deployments/hnf.yml) points ArgoCD at
+# this directory, so syncing the parent creates this Application, which then
+# deploys deploy/k8s into the `hnf` namespace.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hnf
+  namespace: argo
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/manuel-alcocer/healthandfitness.git'
+    targetRevision: main
+    path: deploy/k8s
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: hnf
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

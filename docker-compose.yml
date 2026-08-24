@@ -1,0 +1,45 @@
+# Local full-stack: PostgreSQL + Django + nginx frontend.
+#   docker compose up --build   ->  http://localhost:8080
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: hnf
+      POSTGRES_PASSWORD: hnf
+      POSTGRES_DB: hnf
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hnf"]
+      interval: 3s
+      retries: 15
+
+  backend:
+    build: backend
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: compose-only-secret
+      DATABASE_URL: postgres://hnf:hnf@db:5432/hnf
+      ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-compose-admin-token}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin1234}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py ensure_admin &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+
+  frontend:
+    build: frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
