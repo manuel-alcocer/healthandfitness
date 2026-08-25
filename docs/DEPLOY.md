@@ -57,7 +57,8 @@ Polar Flow → Strava) are imported automatically.
 
 1. Create an API application at https://www.strava.com/settings/api
    (one per Strava account is allowed; any account can own it):
-   - **Authorization Callback Domain**: `hnf.linuxarena.net`
+   - **Authorization Callback Domain**: `hnf.alcocer.net` — must match
+     `PUBLIC_BASE_URL` in the ConfigMap.
    - Website/category: anything reasonable.
 2. Put the *Client ID* in `deploy/k8s/configmap.yml` → `STRAVA_CLIENT_ID`
    (it is not a secret) and commit.

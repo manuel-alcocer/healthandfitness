@@ -17,12 +17,13 @@ data:
   # Google OAuth web client id (not a secret). Set it after creating the OAuth
   # client in Google Cloud Console — see docs/DEPLOY.md. Empty disables login.
   GOOGLE_CLIENT_ID: '208573007225-24iarsls0rmr2328pmg9mm793l79dve4.apps.googleusercontent.com'
-  # Public origin used to build OAuth redirect URLs (Strava callback).
-  PUBLIC_BASE_URL: 'https://hnf.linuxarena.net'
+  # Public origin used to build OAuth redirect URLs. Must match the Strava API
+  # app's Authorization Callback Domain (hnf.alcocer.net).
+  PUBLIC_BASE_URL: 'https://hnf.alcocer.net'
   # Strava API application client id (not a secret). Empty disables the Strava
   # integration. The client secret lives in the hand-made hnf-strava Secret —
   # see docs/DEPLOY.md.
-  STRAVA_CLIENT_ID: ''
+  STRAVA_CLIENT_ID: '274567'
   ADMIN_EMAIL: 'm.alcocer1978@gmail.com'
   ACCESS_TOKEN_LIFETIME_MINUTES: '120'
   REFRESH_TOKEN_LIFETIME_DAYS: '30'
