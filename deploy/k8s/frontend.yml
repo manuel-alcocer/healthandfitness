@@ -88,7 +88,10 @@ metadata:
   namespace: hnf
   annotations:
     cert-manager.io/cluster-issuer: clusterissuer-he
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # websecure-ext is the externally-exposed Traefik entrypoint (same pattern
+    # as jellyfin): hnf.alcocer.net reaches it through the traefik-external
+    # LoadBalancer; the DNS record at he.net is created by hand.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure,websecure-ext
     traefik.ingress.kubernetes.io/router.tls: 'true'
 spec:
   ingressClassName: traefik
@@ -103,7 +106,18 @@ spec:
                 name: hnf-frontend
                 port:
                   number: 80
+    - host: hnf.alcocer.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hnf-frontend
+                port:
+                  number: 80
   tls:
     - hosts:
         - hnf.k.alcocer.net
+        - hnf.alcocer.net
       secretName: hnf-tls

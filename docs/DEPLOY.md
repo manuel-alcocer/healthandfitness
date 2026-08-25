@@ -19,6 +19,7 @@ PostgreSQL (`postgresql.databases.svc.cluster.local`), created by the
 2. *Create credentials → OAuth client ID → Web application*, name `hnf`.
 3. Authorized JavaScript origins:
    - `https://hnf.linuxarena.net`
+   - `https://hnf.alcocer.net`
    - `https://hnf.k.alcocer.net`
    - `http://localhost:5173` (dev)
    (No redirect URIs needed: the app uses the Google Identity Services popup.)
@@ -35,6 +36,19 @@ In the Cloudflare Zero Trust dashboard, add a public hostname to the tunnel:
     hnf.linuxarena.net  ->  http://hnf-frontend.hnf.svc.cluster.local:80
 
 `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` already include the public name.
+
+### 2b. Direct exposure via traefik-ext (hnf.alcocer.net)
+
+Same pattern as jellyfin: the frontend Ingress is attached to the
+`websecure,websecure-ext` Traefik entrypoints, so it is reachable through the
+`traefik-external` LoadBalancer as well as the internal one, with the TLS
+certificate (`hnf-tls`) issued by `clusterissuer-he` for both names.
+
+Manual step: create the `hnf.alcocer.net` DNS record at he.net (Hurricane
+Electric), pointing where the other externally-published `*.alcocer.net`
+names (e.g. jellyfin's) point. Remember to add
+`https://hnf.alcocer.net` to the Google OAuth client's authorized
+JavaScript origins or login will fail on that host.
 
 ### 3. Strava (optional — activity auto-import)
 
