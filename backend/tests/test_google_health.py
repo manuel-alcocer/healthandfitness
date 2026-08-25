@@ -223,6 +223,32 @@ def test_disconnect(api, gh_settings, account, monkeypatch):
     assert GoogleHealthAccount.objects.count() == 0
 
 
+def test_daily_weights_prefers_morning_reading():
+    # Same day: 07:07 morning reading beats both the earlier post-midnight
+    # weigh-in (00:30) and the later evening one (21:45).
+    midnight = weight_point(
+        101800,
+        "2026-08-24T22:30:00Z",
+        civil={"date": {"year": 2026, "month": 8, "day": 25}, "time": {"hours": 0, "minutes": 30}},
+    )
+    morning = weight_point(
+        102000,
+        "2026-08-25T05:07:00Z",
+        civil={"date": {"year": 2026, "month": 8, "day": 25}, "time": {"hours": 7, "minutes": 7}},
+    )
+    evening = weight_point(
+        101300,
+        "2026-08-25T19:45:00Z",
+        civil={"date": {"year": 2026, "month": 8, "day": 25}, "time": {"hours": 21, "minutes": 45}},
+    )
+    days = sync_health.daily_weights([midnight, morning, evening])
+    assert days == {"2026-08-25": 102.0}
+
+    # A day with no morning reading falls back to its earliest weigh-in.
+    days = sync_health.daily_weights([midnight, evening])
+    assert days == {"2026-08-25": 101.8}
+
+
 def test_daily_weights_accepts_civil_time_variants():
     # Structured civilTime crossing midnight UTC: civil date (25th) wins
     # over the physical instant's date (24th).

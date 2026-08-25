@@ -1,7 +1,11 @@
 """Turn Google Health weight data points into daily WeightEntry rows.
 
-One entry per day: the earliest weigh-in of the day wins (the usual
-fasted morning reading). Hand-entered values are never overwritten.
+One entry per day: the morning weigh-in wins (fasted readings are the only
+ones comparable day to day) — specifically the earliest reading inside the
+03:00-14:00 local window, falling back to the earliest of the day when
+nothing was measured in the morning (so a post-midnight weigh-in, which
+lands on the next civil day, never displaces a real morning reading).
+Hand-entered values are never overwritten.
 """
 
 import time
@@ -22,6 +26,10 @@ TOKEN_REFRESH_MARGIN_S = 300
 # Guard against scale glitches (a boot, luggage, a pet on the scale...).
 MIN_WEIGHT_KG = 30
 MAX_WEIGHT_KG = 300
+
+# Local-hour window whose readings take precedence for the day.
+MORNING_START_H = 3
+MORNING_END_H = 14
 
 
 def get_valid_access_token(account: GoogleHealthAccount) -> str:
@@ -44,18 +52,20 @@ def get_valid_access_token(account: GoogleHealthAccount) -> str:
     return account.access_token
 
 
-def _point_date_and_time(point: dict) -> tuple[str, str] | None:
-    """(local date, physical instant) of a weight data point, or None.
+def _point_date_and_time(point: dict) -> tuple[str, str, int] | None:
+    """(local date, physical instant, local hour) of a data point, or None.
 
     civilTime arrives as a structured object ({"date": {"year", "month",
-    "day"}, ...}) in practice, although the docs also show string forms —
-    accept both, falling back to the physical instant's date.
+    "day"}, "time": {...}}) in practice, although the docs also show string
+    forms — accept both, falling back to the physical instant.
     """
     weight = point.get("weight") or {}
     sample = weight.get("sampleTime") or {}
     physical = sample.get("physicalTime") or ""
     if len(physical) < 10:
         return None
+    day = physical[:10]
+    hour = int(physical[11:13]) if len(physical) >= 13 else 0
     civil = sample.get("civilTime")
     if isinstance(civil, dict):
         date_part = civil.get("date") or {}
@@ -66,17 +76,25 @@ def _point_date_and_time(point: dict) -> tuple[str, str] | None:
                 f"-{int(date_part['day']):02d}"
             )
         except (KeyError, TypeError, ValueError):
-            day = physical[:10]
+            pass
+        try:
+            hour = int((civil.get("time") or {}).get("hours", hour))
+        except (TypeError, ValueError):
+            pass
     elif isinstance(civil, str) and len(civil) >= 10:
         day = civil[:10]
-    else:
-        day = physical[:10]
-    return day, physical
+        if len(civil) >= 13:
+            try:
+                hour = int(civil[11:13])
+            except ValueError:
+                pass
+    return day, physical, hour
 
 
 def daily_weights(points: list[dict]) -> dict[str, float]:
-    """Earliest valid reading per local date, in kg."""
-    best: dict[str, tuple[str, float]] = {}
+    """The day's weigh-in per local date, in kg: earliest morning reading
+    (03:00-14:00 local), or the earliest of the day if none."""
+    by_day: dict[str, list[tuple[str, int, float]]] = {}
     for point in points:
         when = _point_date_and_time(point)
         grams = (point.get("weight") or {}).get("weightGrams")
@@ -85,10 +103,15 @@ def daily_weights(points: list[dict]) -> dict[str, float]:
         kg = round(float(grams) / 1000, 2)
         if not (MIN_WEIGHT_KG <= kg <= MAX_WEIGHT_KG):
             continue
-        day, instant = when
-        if day not in best or instant < best[day][0]:
-            best[day] = (instant, kg)
-    return {day: kg for day, (_, kg) in best.items()}
+        day, instant, hour = when
+        by_day.setdefault(day, []).append((instant, hour, kg))
+
+    result: dict[str, float] = {}
+    for day, readings in by_day.items():
+        morning = [r for r in readings if MORNING_START_H <= r[1] < MORNING_END_H]
+        _, _, kg = min(morning or readings)
+        result[day] = kg
+    return result
 
 
 def import_weights(account: GoogleHealthAccount) -> int:
