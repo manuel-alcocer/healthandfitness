@@ -5,6 +5,10 @@ from django.db import models
 class WeightEntry(models.Model):
     """A weigh-in. One per day at most; resubmitting a date updates it."""
 
+    class Source(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        GOOGLE_HEALTH = "google_health", "Google Health"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="weight_entries"
     )
@@ -12,6 +16,7 @@ class WeightEntry(models.Model):
     weight_kg = models.DecimalField(max_digits=5, decimal_places=2)
     body_fat_pct = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     notes = models.CharField(max_length=200, blank=True)
+    source = models.CharField(max_length=15, choices=Source.choices, default=Source.MANUAL)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

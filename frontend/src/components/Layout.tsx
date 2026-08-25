@@ -4,10 +4,10 @@ import { NavLink, Outlet } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { useToast } from "../toast";
-import type { StravaStatus } from "../types";
+import type { IntegrationStatus } from "../types";
 
-// Module-level flag: pull from Strava once per app load, not on every route.
-let stravaSynced = false;
+// Module-level flag: pull from integrations once per app load, not per route.
+let integrationsSynced = false;
 
 function todayISO() {
   const d = new Date();
@@ -47,22 +47,25 @@ export default function Layout() {
   const toast = useToast();
 
   useEffect(() => {
-    if (stravaSynced) return;
-    stravaSynced = true;
-    api<StravaStatus>("/api/integrations/strava")
-      .then((s) =>
-        s.connected
-          ? api<{ imported: number }>("/api/integrations/strava/sync", { method: "POST" })
-          : null,
-      )
-      .then((r) => {
-        if (r && r.imported > 0) {
-          toast(
-            `${r.imported} ${r.imported === 1 ? "actividad importada" : "actividades importadas"} de Strava`,
-          );
-        }
-      })
-      .catch(() => {});
+    if (integrationsSynced) return;
+    integrationsSynced = true;
+    const autoSync = (path: string, label: (n: number) => string) =>
+      api<IntegrationStatus>(`/api/integrations/${path}`)
+        .then((s) =>
+          s.connected
+            ? api<{ imported: number }>(`/api/integrations/${path}/sync`, { method: "POST" })
+            : null,
+        )
+        .then((r) => {
+          if (r && r.imported > 0) toast(label(r.imported));
+        })
+        .catch(() => {});
+    autoSync("strava", (n) =>
+      `${n} ${n === 1 ? "actividad importada" : "actividades importadas"} de Strava`,
+    );
+    autoSync("google-health", (n) =>
+      `${n} ${n === 1 ? "pesaje importado" : "pesajes importados"} de la báscula`,
+    );
   }, [toast]);
 
   return (

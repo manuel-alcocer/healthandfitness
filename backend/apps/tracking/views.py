@@ -42,7 +42,8 @@ class WeightEntryViewSet(OwnedModelViewSet):
         if existing:
             serializer = self.get_serializer(existing, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
+            # A hand-entered value wins over (and stops) scale imports for the day.
+            serializer.save(source=WeightEntry.Source.MANUAL)
             return Response(serializer.data)
         return super().create(request, *args, **kwargs)
 

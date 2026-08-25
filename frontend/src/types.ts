@@ -153,6 +153,7 @@ export interface WeightEntry {
   weight_kg: string;
   body_fat_pct: string | null;
   notes: string;
+  source?: "manual" | "google_health";
 }
 
 export interface ActivityEntry {
@@ -173,7 +174,7 @@ export interface ActivityEntry {
   source?: "manual" | "strava";
 }
 
-export interface StravaStatus {
+export interface IntegrationStatus {
   enabled: boolean;
   connected: boolean;
   athlete_name?: string;

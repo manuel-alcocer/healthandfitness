@@ -40,10 +40,13 @@ spec:
                 name: hnf-db
             - secretRef:
                 name: hnf-admin
-            # Created by hand (kubectl) because the value comes from Strava,
-            # not from a generator — optional so the backend runs without it.
+            # Created by hand (kubectl) because the values come from external
+            # providers, not generators — optional so the backend runs without.
             - secretRef:
                 name: hnf-strava
+                optional: true
+            - secretRef:
+                name: hnf-google
                 optional: true
           resources:
             requests:

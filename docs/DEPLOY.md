@@ -75,7 +75,34 @@ While `STRAVA_CLIENT_ID` is empty the integration is hidden in the app.
 Users connect from **Perfil → Conexiones**; activities then sync on app open
 or via "Sincronizar ahora".
 
-### 4. Admin access
+### 4. Google Health (optional — scale weigh-in auto-import)
+
+Imports daily body-weight readings (e.g. a Renpho scale syncing into the
+user's Google Health account) as weight entries. Reuses the login OAuth
+client, but the authorization-code flow additionally needs its client secret.
+
+In the Google Cloud project that owns the OAuth client:
+
+1. Enable **Google Health API** (API Library).
+2. On the OAuth client, add the authorized redirect URI:
+   `https://hnf.alcocer.net/api/integrations/google-health/callback`
+3. On the consent screen (Data Access page), add the scope
+   `googlehealth.health_metrics_and_measurements.readonly`.
+4. Publish the app (or add each user as a test user — but note that in
+   Testing status Google expires refresh tokens after 7 days, forcing a
+   weekly reconnect).
+5. Create the secret with the OAuth client secret by hand:
+
+       kubectl create secret generic hnf-google -n hnf \
+         --from-literal=GOOGLE_CLIENT_SECRET=<client secret>
+
+6. Restart the backend: `kubectl rollout restart deployment/hnf-backend -n hnf`
+
+While the secret is missing the integration is hidden in the app. Users
+connect from **Perfil → Conexiones**. Hand-entered weights always win over
+imported ones.
+
+### 5. Admin access
 
 - Django admin: https://hnf.k.alcocer.net/admin — user `m.alcocer1978@gmail.com`,
   password:

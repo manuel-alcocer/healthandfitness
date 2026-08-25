@@ -71,6 +71,11 @@ export default function HistoryPage() {
                 <span className="when">{fmt(e.date)}</span>
                 <span className="what">
                   <strong className="mono">{parseFloat(e.weight_kg).toFixed(1)} kg</strong>
+                  {e.source === "google_health" && (
+                    <span className="chip health" style={{ fontSize: 11, marginLeft: 6 }}>
+                      Báscula
+                    </span>
+                  )}
                   {e.body_fat_pct && (
                     <span className="muted mono"> · {e.body_fat_pct}% graso</span>
                   )}

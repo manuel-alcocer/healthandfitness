@@ -19,6 +19,7 @@ env = environ.Env(
     DATABASE_URL=(str, f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
     SECRET_KEY=(str, "dev-only-insecure-key-change-me"),
     GOOGLE_CLIENT_ID=(str, ""),
+    GOOGLE_CLIENT_SECRET=(str, ""),
     STRAVA_CLIENT_ID=(str, ""),
     STRAVA_CLIENT_SECRET=(str, ""),
     PUBLIC_BASE_URL=(str, ""),
@@ -39,6 +40,10 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 # Google Sign-In: the OAuth client id used to verify ID tokens. Empty means
 # login is disabled (the frontend shows a "not configured" message).
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+
+# Client secret of the same OAuth client, used only for the Google Health API
+# authorization-code flow. Empty disables the Google Health integration.
+GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET")
 
 # Strava API application credentials. Empty disables the Strava integration.
 STRAVA_CLIENT_ID = env("STRAVA_CLIENT_ID")

@@ -6,7 +6,8 @@ from .models import ActivityEntry, NutritionEntry, WeightEntry
 class WeightEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = WeightEntry
-        fields = ["id", "date", "weight_kg", "body_fat_pct", "notes", "created_at"]
+        fields = ["id", "date", "weight_kg", "body_fat_pct", "notes", "source", "created_at"]
+        read_only_fields = ["source"]
 
     def validate_weight_kg(self, value):
         if not (30 <= value <= 300):

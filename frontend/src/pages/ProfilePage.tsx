@@ -6,7 +6,7 @@ import { api } from "../api";
 import { useAuth } from "../auth";
 import { clearInstallPrompt, getInstallPrompt, isStandalone, onInstallChange } from "../pwa";
 import { useToast } from "../toast";
-import { ACTIVITY_LABELS, type StravaStatus } from "../types";
+import { ACTIVITY_LABELS, type IntegrationStatus } from "../types";
 
 const REVISION_ACTIVITIES = ["walk", "run", "swim", "bike", "gym", "hike"];
 
@@ -37,8 +37,10 @@ export default function ProfilePage() {
   const [days, setDays] = useState(String(me?.profile?.training_days_per_week ?? 3));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [strava, setStrava] = useState<StravaStatus | null>(null);
+  const [strava, setStrava] = useState<IntegrationStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [health, setHealth] = useState<IntegrationStatus | null>(null);
+  const [syncingHealth, setSyncingHealth] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(getInstallPrompt);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -52,19 +54,26 @@ export default function ProfilePage() {
   useEffect(() => onInstallChange(() => setInstallPrompt(getInstallPrompt())), []);
 
   const loadStrava = () =>
-    api<StravaStatus>("/api/integrations/strava").then(setStrava).catch(() => {});
+    api<IntegrationStatus>("/api/integrations/strava").then(setStrava).catch(() => {});
+  const loadHealth = () =>
+    api<IntegrationStatus>("/api/integrations/google-health").then(setHealth).catch(() => {});
 
   useEffect(() => {
     loadStrava();
+    loadHealth();
   }, []);
 
-  // Feedback after coming back from Strava's OAuth screen.
+  // Feedback after coming back from an OAuth screen (Strava or Google Health).
   useEffect(() => {
-    const outcome = params.get("strava");
-    if (!outcome) return;
-    if (outcome === "conectado") toast("Strava conectado — importando tus actividades");
-    else if (outcome === "denegado") toast("Conexión con Strava cancelada");
-    else toast("No se pudo conectar con Strava");
+    const stravaOutcome = params.get("strava");
+    const healthOutcome = params.get("salud");
+    if (!stravaOutcome && !healthOutcome) return;
+    if (stravaOutcome === "conectado") toast("Strava conectado — importando tus actividades");
+    else if (stravaOutcome === "denegado") toast("Conexión con Strava cancelada");
+    else if (stravaOutcome) toast("No se pudo conectar con Strava");
+    if (healthOutcome === "conectado") toast("Google Health conectado — importando tus pesajes");
+    else if (healthOutcome === "denegado") toast("Conexión con Google Health cancelada");
+    else if (healthOutcome) toast("No se pudo conectar con Google Health");
     setParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
@@ -98,6 +107,35 @@ export default function ProfilePage() {
       await loadStrava();
     } catch {
       toast("No se pudo desconectar Strava");
+    }
+  }
+
+  async function syncHealth() {
+    setSyncingHealth(true);
+    try {
+      const r = await api<{ imported: number }>("/api/integrations/google-health/sync", {
+        method: "POST",
+      });
+      toast(
+        r.imported > 0
+          ? `${r.imported} ${r.imported === 1 ? "pesaje importado" : "pesajes importados"} de la báscula`
+          : "Ya estaba todo al día",
+      );
+      await loadHealth();
+    } catch {
+      toast("No se pudo sincronizar con Google Health");
+    } finally {
+      setSyncingHealth(false);
+    }
+  }
+
+  async function disconnectHealth() {
+    try {
+      await api("/api/integrations/google-health", { method: "DELETE" });
+      toast("Google Health desconectado");
+      await loadHealth();
+    } catch {
+      toast("No se pudo desconectar Google Health");
     }
   }
 
@@ -312,10 +350,10 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {strava?.enabled && (
+      {(strava?.enabled || health?.enabled) && (
         <div className="card">
           <div className="eyebrow">Conexiones</div>
-          {strava.connected ? (
+          {strava?.enabled && (strava.connected ? (
             <>
               <p style={{ margin: "6px 0 0" }}>
                 <span className="chip strava">Strava</span>{" "}
@@ -348,7 +386,47 @@ export default function ProfilePage() {
                 </a>
               )}
             </>
-          )}
+          ))}
+
+          {strava?.enabled && health?.enabled && <hr className="divider" />}
+
+          {health?.enabled &&
+            (health.connected ? (
+              <>
+                <p style={{ margin: "6px 0 0" }}>
+                  <span className="chip health">Google Health</span> Conectado.
+                </p>
+                <p className="muted" style={{ margin: "6px 0 10px", fontSize: 14 }}>
+                  Los pesajes de tu báscula se importan solos al abrir la app.
+                  {health.last_sync_at &&
+                    ` Última sincronización: ${new Date(health.last_sync_at).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.`}
+                </p>
+                <div className="btn-row">
+                  <button className="btn btn-ghost" onClick={disconnectHealth}>
+                    Desconectar
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={syncingHealth}
+                    onClick={syncHealth}
+                  >
+                    {syncingHealth ? "Sincronizando…" : "Sincronizar ahora"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="muted" style={{ margin: "6px 0 10px" }}>
+                  Conecta Google Health y los pesajes de tu báscula entrarán solos en tu
+                  curva de peso.
+                </p>
+                {health.auth_url && (
+                  <a className="btn btn-health" href={health.auth_url}>
+                    Conectar con Google Health
+                  </a>
+                )}
+              </>
+            ))}
         </div>
       )}
 
