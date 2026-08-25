@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useRegisterSW } from "virtual:pwa-register/react";
 
 import { api } from "../api";
 import { useAuth } from "../auth";
+import { clearInstallPrompt, getInstallPrompt, isStandalone, onInstallChange } from "../pwa";
 import { useToast } from "../toast";
 import { ACTIVITY_LABELS, type StravaStatus } from "../types";
 
@@ -37,6 +39,17 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState(false);
   const [strava, setStrava] = useState<StravaStatus | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(getInstallPrompt);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegisteredSW: (_url, registration) => setSwRegistration(registration ?? null),
+  });
+
+  useEffect(() => onInstallChange(() => setInstallPrompt(getInstallPrompt())), []);
 
   const loadStrava = () =>
     api<StravaStatus>("/api/integrations/strava").then(setStrava).catch(() => {});
@@ -85,6 +98,39 @@ export default function ProfilePage() {
       await loadStrava();
     } catch {
       toast("No se pudo desconectar Strava");
+    }
+  }
+
+  async function installApp() {
+    const prompt = installPrompt;
+    if (!prompt) return;
+    await prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    clearInstallPrompt();
+    toast(
+      outcome === "accepted"
+        ? "Instalando… busca H&F en tu pantalla de inicio"
+        : "Instalación cancelada",
+    );
+  }
+
+  async function checkForUpdate() {
+    if (!swRegistration) {
+      toast("Actualizaciones no disponibles en este navegador");
+      return;
+    }
+    setCheckingUpdate(true);
+    try {
+      await swRegistration.update();
+      // A found update flips needRefresh via the hook; give it a moment.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!swRegistration.installing && !swRegistration.waiting) {
+        toast("Ya tienes la última versión");
+      }
+    } catch {
+      toast("No se pudo comprobar la actualización");
+    } finally {
+      setCheckingUpdate(false);
     }
   }
 
@@ -305,6 +351,45 @@ export default function ProfilePage() {
           )}
         </div>
       )}
+
+      <div className="card">
+        <div className="eyebrow">Aplicación</div>
+        {needRefresh ? (
+          <>
+            <p style={{ margin: "6px 0 10px" }}>
+              Hay una versión nueva lista para usar.
+            </p>
+            <button className="btn btn-primary" onClick={() => updateServiceWorker(true)}>
+              Actualizar ahora
+            </button>
+          </>
+        ) : isStandalone() ? (
+          <>
+            <p className="muted" style={{ margin: "6px 0 10px", fontSize: 14 }}>
+              Estás usando la app instalada · versión del{" "}
+              <span className="mono">{__BUILD_DATE__}</span>.
+            </p>
+            <button className="btn btn-secondary" disabled={checkingUpdate} onClick={checkForUpdate}>
+              {checkingUpdate ? "Comprobando…" : "Buscar actualización"}
+            </button>
+          </>
+        ) : installPrompt ? (
+          <>
+            <p className="muted" style={{ margin: "6px 0 10px" }}>
+              Instala H&amp;F en tu móvil: se abre a pantalla completa, con su icono, como
+              cualquier app.
+            </p>
+            <button className="btn btn-primary" onClick={installApp}>
+              Instalar en este dispositivo
+            </button>
+          </>
+        ) : (
+          <p className="muted" style={{ margin: "6px 0 0", fontSize: 14 }}>
+            Para instalarla: abre el menú ⋮ de Chrome y toca «Añadir a pantalla de inicio»
+            (o «Instalar app»). Versión del <span className="mono">{__BUILD_DATE__}</span>.
+          </p>
+        )}
+      </div>
 
       <button
         className="btn btn-ghost"
