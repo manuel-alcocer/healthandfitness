@@ -12,6 +12,9 @@ class GoogleHealthAccount(models.Model):
     refresh_token = models.TextField()
     # Unix epoch when the access token expires.
     token_expires_at = models.BigIntegerField()
+    # Google expires refresh tokens after 7 days while the OAuth consent
+    # screen is in Testing status; the user then has to reconnect.
+    needs_reauth = models.BooleanField(default=False)
     last_sync_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

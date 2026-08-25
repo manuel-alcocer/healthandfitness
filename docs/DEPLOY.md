@@ -88,9 +88,12 @@ In the Google Cloud project that owns the OAuth client:
    `https://hnf.alcocer.net/api/integrations/google-health/callback`
 3. On the consent screen (Data Access page), add the scope
    `googlehealth.health_metrics_and_measurements.readonly`.
-4. Publish the app (or add each user as a test user — but note that in
-   Testing status Google expires refresh tokens after 7 days, forcing a
-   weekly reconnect).
+4. This is a **restricted** scope: production use would require Google's
+   full app verification (privacy policy, security assessment) — not worth
+   it for a personal app. Instead keep the consent screen in **Testing**
+   status and add each user as a test user (Audience page). Google then
+   expires refresh tokens after 7 days; the app detects it and shows a
+   one-tap "Reconectar" button in Perfil → Conexiones.
 5. Create the secret with the OAuth client secret by hand:
 
        kubectl create secret generic hnf-google -n hnf \

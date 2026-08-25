@@ -133,7 +133,8 @@ class GoogleHealthAccountView(APIView):
         payload: dict = {"enabled": True, "connected": account is not None}
         if account:
             payload["last_sync_at"] = account.last_sync_at
-        else:
+            payload["needs_reauth"] = account.needs_reauth
+        if account is None or account.needs_reauth:
             state = signing.TimestampSigner(salt=GH_STATE_SALT).sign(str(request.user.pk))
             payload["auth_url"] = google_health.authorize_url(
                 _callback_uri(request, GH_CALLBACK_PATH), state
@@ -187,6 +188,7 @@ class GoogleHealthCallbackView(APIView):
                 "access_token": data["access_token"],
                 "refresh_token": refresh_token,
                 "token_expires_at": int(time.time()) + int(data.get("expires_in", 3600)),
+                "needs_reauth": False,
             },
         )
         return redirect("/perfil?salud=conectado")
@@ -204,6 +206,11 @@ class GoogleHealthSyncView(APIView):
             )
         try:
             imported = import_weights(account)
+        except google_health.TokenRevokedError:
+            return Response(
+                {"detail": "La conexión con Google Health ha caducado; reconéctala"},
+                status=status.HTTP_409_CONFLICT,
+            )
         except google_health.GoogleHealthError:
             logger.exception("Google Health sync failed for %s", request.user.email)
             return Response(

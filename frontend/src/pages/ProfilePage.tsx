@@ -391,7 +391,23 @@ export default function ProfilePage() {
           {strava?.enabled && health?.enabled && <hr className="divider" />}
 
           {health?.enabled &&
-            (health.connected ? (
+            (health.connected && health.needs_reauth ? (
+              <>
+                <p style={{ margin: "6px 0 0" }}>
+                  <span className="chip health">Google Health</span>{" "}
+                  <span className="chip warn">Conexión caducada</span>
+                </p>
+                <p className="muted" style={{ margin: "6px 0 10px", fontSize: 14 }}>
+                  Google caduca el permiso cada 7 días. Reconéctala con un toque y los
+                  pesajes vuelven a entrar solos.
+                </p>
+                {health.auth_url && (
+                  <a className="btn btn-health" href={health.auth_url}>
+                    Reconectar Google Health
+                  </a>
+                )}
+              </>
+            ) : health.connected ? (
               <>
                 <p style={{ margin: "6px 0 0" }}>
                   <span className="chip health">Google Health</span> Conectado.

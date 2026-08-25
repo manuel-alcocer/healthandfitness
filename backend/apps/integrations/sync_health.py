@@ -27,10 +27,20 @@ MAX_WEIGHT_KG = 300
 def get_valid_access_token(account: GoogleHealthAccount) -> str:
     if account.token_expires_at - time.time() > TOKEN_REFRESH_MARGIN_S:
         return account.access_token
-    data = google_health.refresh_tokens(account.refresh_token)
+    try:
+        data = google_health.refresh_tokens(account.refresh_token)
+    except google_health.TokenRevokedError:
+        # Testing-status consent screens expire refresh tokens after 7 days.
+        account.needs_reauth = True
+        account.save(update_fields=["needs_reauth"])
+        raise
     account.access_token = data["access_token"]
     account.token_expires_at = int(time.time()) + int(data.get("expires_in", 3600))
-    account.save(update_fields=["access_token", "token_expires_at"])
+    if account.needs_reauth:
+        account.needs_reauth = False
+        account.save(update_fields=["access_token", "token_expires_at", "needs_reauth"])
+    else:
+        account.save(update_fields=["access_token", "token_expires_at"])
     return account.access_token
 
 

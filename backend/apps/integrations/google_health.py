@@ -23,6 +23,10 @@ class GoogleHealthError(Exception):
     pass
 
 
+class TokenRevokedError(GoogleHealthError):
+    """The refresh token is dead (expired/revoked); the user must reconnect."""
+
+
 def enabled() -> bool:
     return bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET)
 
@@ -52,6 +56,12 @@ def _token_request(payload: dict) -> dict:
     except requests.RequestException as exc:
         raise GoogleHealthError(f"Google token request failed: {exc}") from exc
     if resp.status_code != 200:
+        try:
+            error = resp.json().get("error", "")
+        except ValueError:
+            error = ""
+        if error == "invalid_grant":
+            raise TokenRevokedError("Google refresh token expired or revoked")
         raise GoogleHealthError(f"Google token request rejected ({resp.status_code})")
     return resp.json()
 

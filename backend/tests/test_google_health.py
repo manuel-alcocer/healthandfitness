@@ -166,6 +166,46 @@ def test_manual_weight_entry_flips_source(api, gh_settings, account):
     assert float(entry.weight_kg) == 100.5
 
 
+def test_expired_refresh_token_flags_reauth(api, gh_settings, account, monkeypatch):
+    account.token_expires_at = int(datetime(2020, 1, 1).timestamp())
+    account.save()
+
+    def dead(rt):
+        raise sync_health.google_health.TokenRevokedError("expired")
+
+    monkeypatch.setattr(sync_health.google_health, "refresh_tokens", dead)
+    resp = api.post("/api/integrations/google-health/sync")
+    assert resp.status_code == 409
+    account.refresh_from_db()
+    assert account.needs_reauth is True
+
+    # Status now offers a reconnect URL while still reporting the link.
+    status_resp = api.get("/api/integrations/google-health")
+    assert status_resp.data["connected"] is True
+    assert status_resp.data["needs_reauth"] is True
+    assert "auth_url" in status_resp.data
+
+
+def test_reconnect_clears_reauth_flag(client, user, gh_settings, account, monkeypatch):
+    account.needs_reauth = True
+    account.save()
+    monkeypatch.setattr(
+        integ_views.google_health,
+        "exchange_code",
+        lambda code, redirect_uri: {
+            "access_token": "again",
+            "refresh_token": "again-ref",
+            "expires_in": 3600,
+        },
+    )
+    state = signing.TimestampSigner(salt=integ_views.GH_STATE_SALT).sign(str(user.pk))
+    resp = client.get(f"/api/integrations/google-health/callback?code=abc&state={state}")
+    assert resp.url == "/perfil?salud=conectado"
+    account.refresh_from_db()
+    assert account.needs_reauth is False
+    assert account.refresh_token == "again-ref"
+
+
 def test_disconnect(api, gh_settings, account, monkeypatch):
     monkeypatch.setattr(integ_views.google_health, "revoke", lambda token: None)
     resp = api.delete("/api/integrations/google-health")

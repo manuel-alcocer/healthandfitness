@@ -180,6 +180,7 @@ export interface IntegrationStatus {
   athlete_name?: string;
   last_sync_at?: string | null;
   auth_url?: string;
+  needs_reauth?: boolean;
 }
 
 export interface MealLog {
