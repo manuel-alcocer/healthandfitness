@@ -1,6 +1,13 @@
+import { useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { api } from "../api";
 import { useAuth } from "../auth";
+import { useToast } from "../toast";
+import type { StravaStatus } from "../types";
+
+// Module-level flag: pull from Strava once per app load, not on every route.
+let stravaSynced = false;
 
 function todayISO() {
   const d = new Date();
@@ -37,6 +44,27 @@ const icons = {
 
 export default function Layout() {
   const { me } = useAuth();
+  const toast = useToast();
+
+  useEffect(() => {
+    if (stravaSynced) return;
+    stravaSynced = true;
+    api<StravaStatus>("/api/integrations/strava")
+      .then((s) =>
+        s.connected
+          ? api<{ imported: number }>("/api/integrations/strava/sync", { method: "POST" })
+          : null,
+      )
+      .then((r) => {
+        if (r && r.imported > 0) {
+          toast(
+            `${r.imported} ${r.imported === 1 ? "actividad importada" : "actividades importadas"} de Strava`,
+          );
+        }
+      })
+      .catch(() => {});
+  }, [toast]);
+
   return (
     <div className="shell">
       <header className="topbar">

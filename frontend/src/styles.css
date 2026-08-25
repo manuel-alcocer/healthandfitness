@@ -302,6 +302,22 @@ a {
   color: var(--plan);
 }
 
+.chip.strava {
+  background: rgba(252, 76, 2, 0.12);
+  color: #c93d02;
+}
+
+/* Strava's brand orange, only on its connect button. */
+.btn-strava {
+  background: #fc4c02;
+  color: #fff;
+  border: none;
+}
+
+.btn-strava:active {
+  background: #d84202;
+}
+
 /* The coach's rubber stamp — signature element. Angled, double-struck ink. */
 .stamp {
   display: inline-block;

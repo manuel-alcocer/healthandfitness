@@ -19,6 +19,9 @@ env = environ.Env(
     DATABASE_URL=(str, f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
     SECRET_KEY=(str, "dev-only-insecure-key-change-me"),
     GOOGLE_CLIENT_ID=(str, ""),
+    STRAVA_CLIENT_ID=(str, ""),
+    STRAVA_CLIENT_SECRET=(str, ""),
+    PUBLIC_BASE_URL=(str, ""),
     ADMIN_API_TOKEN=(str, ""),
     ADMIN_EMAIL=(str, "m.alcocer1978@gmail.com"),
     ADMIN_PASSWORD=(str, ""),
@@ -36,6 +39,14 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 # Google Sign-In: the OAuth client id used to verify ID tokens. Empty means
 # login is disabled (the frontend shows a "not configured" message).
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID")
+
+# Strava API application credentials. Empty disables the Strava integration.
+STRAVA_CLIENT_ID = env("STRAVA_CLIENT_ID")
+STRAVA_CLIENT_SECRET = env("STRAVA_CLIENT_SECRET")
+
+# Public origin (e.g. https://hnf.linuxarena.net) used to build OAuth redirect
+# URLs. Empty falls back to the request's own host — fine for local dev.
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL")
 
 # Shared-secret token for the admin CLI (hnfctl). Empty disables the admin API.
 ADMIN_API_TOKEN = env("ADMIN_API_TOKEN")
@@ -60,6 +71,7 @@ INSTALLED_APPS = [
     "apps.plans",
     "apps.tracking",
     "apps.adminapi",
+    "apps.integrations",
 ]
 
 MIDDLEWARE = [

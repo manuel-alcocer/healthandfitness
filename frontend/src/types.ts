@@ -170,6 +170,15 @@ export interface ActivityEntry {
   perceived_effort: number | null;
   plan_day: number | null;
   notes: string;
+  source?: "manual" | "strava";
+}
+
+export interface StravaStatus {
+  enabled: boolean;
+  connected: boolean;
+  athlete_name?: string;
+  last_sync_at?: string | null;
+  auth_url?: string;
 }
 
 export interface MealLog {

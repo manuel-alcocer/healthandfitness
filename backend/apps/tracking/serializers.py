@@ -32,8 +32,10 @@ class ActivityEntrySerializer(serializers.ModelSerializer):
             "perceived_effort",
             "plan_day",
             "notes",
+            "source",
             "created_at",
         ]
+        read_only_fields = ["source"]
 
     def validate(self, attrs):
         for field in ("avg_hr", "max_hr"):

@@ -90,6 +90,11 @@ export default function HistoryPage() {
                 <span className="when">{fmt(e.date)}</span>
                 <span className="what">
                   <strong>{e.title || ACTIVITY_LABELS[e.activity_type]}</strong>
+                  {e.source === "strava" && (
+                    <span className="chip strava" style={{ fontSize: 11, marginLeft: 6 }}>
+                      Strava
+                    </span>
+                  )}
                   <span className="muted mono">
                     {" "}
                     · {e.duration_min} min

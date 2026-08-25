@@ -40,6 +40,11 @@ spec:
                 name: hnf-db
             - secretRef:
                 name: hnf-admin
+            # Created by hand (kubectl) because the value comes from Strava,
+            # not from a generator — optional so the backend runs without it.
+            - secretRef:
+                name: hnf-strava
+                optional: true
           resources:
             requests:
               cpu: 100m

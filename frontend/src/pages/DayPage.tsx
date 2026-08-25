@@ -110,6 +110,30 @@ export default function DayPage() {
     refresh();
   }
 
+  function activityRow(a: ActivityEntry) {
+    return (
+      <div className="entry-row" key={a.id}>
+        <span className="what">
+          <strong>{a.title || ACTIVITY_LABELS[a.activity_type]}</strong>
+          {a.source === "strava" && (
+            <span className="chip strava" style={{ fontSize: 11, marginLeft: 6 }}>
+              Strava
+            </span>
+          )}
+          <span className="muted mono" style={{ fontSize: 13 }}>
+            {" "}· {a.duration_min} min
+            {a.distance_km && ` · ${parseFloat(a.distance_km)} km`}
+            {a.avg_hr && ` · ${a.avg_hr} ppm`}
+            {a.avg_speed_kmh && ` · ${parseFloat(a.avg_speed_kmh)} km/h`}
+          </span>
+        </span>
+        <button className="del" aria-label="Eliminar" onClick={() => removeActivity(a.id)}>
+          ✕
+        </button>
+      </div>
+    );
+  }
+
   const weekday = planDayOf(date);
   const meals = plan ? mealsForDate(plan.data, date) : [];
   const session =
@@ -196,10 +220,13 @@ export default function DayPage() {
         <h2 className="section-title" style={{ margin: 0 }}>Actividad</h2>
         {session ? (
           session.type === "rest" ? (
-            <p style={{ marginBottom: 0 }}>
-              Descanso. También es parte del plan.
-              {activities.length > 0 && " ¡Y aun así entrenaste!"}
-            </p>
+            <>
+              <p style={{ marginBottom: 0 }}>
+                Descanso. También es parte del plan.
+                {activities.length > 0 && " ¡Y aun así entrenaste!"}
+              </p>
+              {activities.map(activityRow)}
+            </>
           ) : (
             <div className="meal-row" style={{ borderBottom: "none" }}>
               <button
@@ -230,28 +257,16 @@ export default function DayPage() {
               {activityOpen && (
                 <div>
                   {session.details && <p className="muted" style={{ margin: "6px 0" }}>{session.details}</p>}
-                  {activities.map((a) => (
-                    <div className="entry-row" key={a.id}>
-                      <span className="what">
-                        <strong>{a.title || ACTIVITY_LABELS[a.activity_type]}</strong>
-                        <span className="muted mono" style={{ fontSize: 13 }}>
-                          {" "}· {a.duration_min} min
-                          {a.distance_km && ` · ${parseFloat(a.distance_km)} km`}
-                          {a.avg_hr && ` · ${a.avg_hr} ppm`}
-                          {a.avg_speed_kmh && ` · ${parseFloat(a.avg_speed_kmh)} km/h`}
-                        </span>
-                      </span>
-                      <button className="del" aria-label="Eliminar" onClick={() => removeActivity(a.id)}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                  {activities.map(activityRow)}
                 </div>
               )}
             </div>
           )
         ) : (
-          <p className="muted" style={{ margin: 0 }}>La sesión aparecerá cuando tu plan esté activo.</p>
+          <>
+            <p className="muted" style={{ margin: 0 }}>La sesión aparecerá cuando tu plan esté activo.</p>
+            {activities.map(activityRow)}
+          </>
         )}
       </div>
 

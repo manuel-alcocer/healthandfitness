@@ -36,7 +36,31 @@ In the Cloudflare Zero Trust dashboard, add a public hostname to the tunnel:
 
 `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` already include the public name.
 
-### 3. Admin access
+### 3. Strava (optional — activity auto-import)
+
+Users can link Strava so their workouts (e.g. a Polar watch syncing through
+Polar Flow → Strava) are imported automatically.
+
+1. Create an API application at https://www.strava.com/settings/api
+   (one per Strava account is allowed; any account can own it):
+   - **Authorization Callback Domain**: `hnf.linuxarena.net`
+   - Website/category: anything reasonable.
+2. Put the *Client ID* in `deploy/k8s/configmap.yml` → `STRAVA_CLIENT_ID`
+   (it is not a secret) and commit.
+3. Create the secret with the *Client Secret* by hand (never in the repo):
+
+       kubectl create secret generic hnf-strava -n hnf \
+         --from-literal=STRAVA_CLIENT_SECRET=<client secret>
+
+4. Restart the backend to pick both up:
+
+       kubectl rollout restart deployment/hnf-backend -n hnf
+
+While `STRAVA_CLIENT_ID` is empty the integration is hidden in the app.
+Users connect from **Perfil → Conexiones**; activities then sync on app open
+or via "Sincronizar ahora".
+
+### 4. Admin access
 
 - Django admin: https://hnf.k.alcocer.net/admin — user `m.alcocer1978@gmail.com`,
   password:

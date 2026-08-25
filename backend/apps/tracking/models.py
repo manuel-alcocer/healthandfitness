@@ -36,6 +36,10 @@ class ActivityEntry(models.Model):
         HIKE = "hike", "Senderismo"
         OTHER = "other", "Otro"
 
+    class Source(models.TextChoices):
+        MANUAL = "manual", "Manual"
+        STRAVA = "strava", "Strava"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="activity_entries"
     )
@@ -53,10 +57,20 @@ class ActivityEntry(models.Model):
     # Index of the plan's weekly_schedule session this fulfils, if any.
     plan_day = models.PositiveSmallIntegerField(null=True, blank=True)
     notes = models.CharField(max_length=300, blank=True)
+    source = models.CharField(max_length=10, choices=Source.choices, default=Source.MANUAL)
+    # Provider-side activity id (e.g. Strava's), used to deduplicate imports.
+    external_id = models.CharField(max_length=40, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-date", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "external_id"],
+                condition=~models.Q(external_id=""),
+                name="unique_external_activity_per_user",
+            )
+        ]
 
     def __str__(self):
         return f"{self.user.email} {self.date}: {self.activity_type} {self.duration_min}min"

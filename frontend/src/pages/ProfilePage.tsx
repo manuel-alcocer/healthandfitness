@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { useToast } from "../toast";
-import { ACTIVITY_LABELS } from "../types";
+import { ACTIVITY_LABELS, type StravaStatus } from "../types";
 
 const REVISION_ACTIVITIES = ["walk", "run", "swim", "bike", "gym", "hike"];
 
@@ -29,13 +29,64 @@ export default function ProfilePage() {
   const { me, logout, refreshMe } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const [params, setParams] = useSearchParams();
   const [editingPlan, setEditingPlan] = useState(false);
   const [activities, setActivities] = useState<string[]>(me?.profile?.preferred_activities ?? []);
   const [days, setDays] = useState(String(me?.profile?.training_days_per_week ?? 3));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [strava, setStrava] = useState<StravaStatus | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const loadStrava = () =>
+    api<StravaStatus>("/api/integrations/strava").then(setStrava).catch(() => {});
+
+  useEffect(() => {
+    loadStrava();
+  }, []);
+
+  // Feedback after coming back from Strava's OAuth screen.
+  useEffect(() => {
+    const outcome = params.get("strava");
+    if (!outcome) return;
+    if (outcome === "conectado") toast("Strava conectado — importando tus actividades");
+    else if (outcome === "denegado") toast("Conexión con Strava cancelada");
+    else toast("No se pudo conectar con Strava");
+    setParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
   if (!me) return null;
   const { user, profile, goal } = me;
+
+  async function syncStrava() {
+    setSyncing(true);
+    try {
+      const r = await api<{ imported: number }>("/api/integrations/strava/sync", {
+        method: "POST",
+      });
+      toast(
+        r.imported > 0
+          ? `${r.imported} ${r.imported === 1 ? "actividad importada" : "actividades importadas"} de Strava`
+          : "Ya estaba todo al día",
+      );
+      await loadStrava();
+    } catch {
+      toast("No se pudo sincronizar con Strava");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function disconnectStrava() {
+    try {
+      await api("/api/integrations/strava", { method: "DELETE" });
+      toast("Strava desconectado");
+      await loadStrava();
+    } catch {
+      toast("No se pudo desconectar Strava");
+    }
+  }
 
   async function requestRevision() {
     setBusy(true);
@@ -210,6 +261,46 @@ export default function ProfilePage() {
               <button className="btn btn-secondary" onClick={() => setEditingPlan(true)}>
                 Cambiar mi ejercicio y pedir actualización
               </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {strava?.enabled && (
+        <div className="card">
+          <div className="eyebrow">Conexiones</div>
+          {strava.connected ? (
+            <>
+              <p style={{ margin: "6px 0 0" }}>
+                <span className="chip strava">Strava</span>{" "}
+                Conectado{strava.athlete_name ? ` como ${strava.athlete_name}` : ""}.
+              </p>
+              <p className="muted" style={{ margin: "6px 0 10px", fontSize: 14 }}>
+                Tus salidas (del reloj, Polar Flow o el móvil) se importan solas al abrir la
+                app.
+                {strava.last_sync_at &&
+                  ` Última sincronización: ${new Date(strava.last_sync_at).toLocaleString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.`}
+              </p>
+              <div className="btn-row">
+                <button className="btn btn-ghost" onClick={disconnectStrava}>
+                  Desconectar
+                </button>
+                <button className="btn btn-secondary" disabled={syncing} onClick={syncStrava}>
+                  {syncing ? "Sincronizando…" : "Sincronizar ahora"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="muted" style={{ margin: "6px 0 10px" }}>
+                Conecta Strava y tus entrenamientos del reloj (vía Polar Flow) se registrarán
+                aquí automáticamente.
+              </p>
+              {strava.auth_url && (
+                <a className="btn btn-strava" href={strava.auth_url}>
+                  Conectar con Strava
+                </a>
+              )}
             </>
           )}
         </div>
