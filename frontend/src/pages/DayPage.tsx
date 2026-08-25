@@ -304,12 +304,22 @@ export default function DayPage() {
                       <p className="muted">Necesitas un plan activo para registrar comidas.</p>
                     ))}
                   {key === "actividad" && (
-                    <ActivityForm
-                      date={date}
-                      defaultType={session && session.type !== "rest" ? session.type : undefined}
-                      planDay={session && session.type !== "rest" ? weekday : null}
-                      onSaved={refresh}
-                    />
+                    <>
+                      {activities.length > 0 && (
+                        <div style={{ marginBottom: 12 }}>
+                          {activities.map(activityRow)}
+                          <p className="muted" style={{ margin: "8px 0 0", fontSize: 14 }}>
+                            ¿Hiciste algo más? Añádelo:
+                          </p>
+                        </div>
+                      )}
+                      <ActivityForm
+                        date={date}
+                        defaultType={session && session.type !== "rest" ? session.type : undefined}
+                        planDay={session && session.type !== "rest" ? weekday : null}
+                        onSaved={refresh}
+                      />
+                    </>
                   )}
                   {key === "biometria" && <WeightForm date={date} onSaved={refresh} />}
                 </div>
