@@ -45,15 +45,33 @@ def get_valid_access_token(account: GoogleHealthAccount) -> str:
 
 
 def _point_date_and_time(point: dict) -> tuple[str, str] | None:
-    """(local date, physical instant) of a weight data point, or None."""
+    """(local date, physical instant) of a weight data point, or None.
+
+    civilTime arrives as a structured object ({"date": {"year", "month",
+    "day"}, ...}) in practice, although the docs also show string forms —
+    accept both, falling back to the physical instant's date.
+    """
     weight = point.get("weight") or {}
     sample = weight.get("sampleTime") or {}
     physical = sample.get("physicalTime") or ""
-    civil = sample.get("civilTime") or ""
-    local = civil or physical
-    if len(local) < 10 or not physical:
+    if len(physical) < 10:
         return None
-    return local[:10], physical
+    civil = sample.get("civilTime")
+    if isinstance(civil, dict):
+        date_part = civil.get("date") or {}
+        try:
+            day = (
+                f"{int(date_part['year']):04d}"
+                f"-{int(date_part['month']):02d}"
+                f"-{int(date_part['day']):02d}"
+            )
+        except (KeyError, TypeError, ValueError):
+            day = physical[:10]
+    elif isinstance(civil, str) and len(civil) >= 10:
+        day = civil[:10]
+    else:
+        day = physical[:10]
+    return day, physical
 
 
 def daily_weights(points: list[dict]) -> dict[str, float]:

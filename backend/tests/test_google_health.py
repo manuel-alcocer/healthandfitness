@@ -29,11 +29,21 @@ def account(user):
 
 
 def weight_point(grams, physical, civil=None):
+    """Mimics the real API shape: civilTime is a structured object."""
+    if civil is None:
+        civil = {
+            "date": {
+                "year": int(physical[0:4]),
+                "month": int(physical[5:7]),
+                "day": int(physical[8:10]),
+            }
+        }
     return {
+        "dataSource": {"platform": "HEALTH_CONNECT"},
         "weight": {
             "weightGrams": grams,
-            "sampleTime": {"physicalTime": physical, "civilTime": civil or physical},
-        }
+            "sampleTime": {"physicalTime": physical, "civilTime": civil},
+        },
     }
 
 
@@ -211,3 +221,20 @@ def test_disconnect(api, gh_settings, account, monkeypatch):
     resp = api.delete("/api/integrations/google-health")
     assert resp.status_code == 204
     assert GoogleHealthAccount.objects.count() == 0
+
+
+def test_daily_weights_accepts_civil_time_variants():
+    # Structured civilTime crossing midnight UTC: civil date (25th) wins
+    # over the physical instant's date (24th).
+    late = weight_point(
+        101000,
+        "2026-08-24T22:30:00Z",
+        civil={"date": {"year": 2026, "month": 8, "day": 25}},
+    )
+    # String civilTime (documented form) and missing civilTime also work.
+    string_form = weight_point(102000, "2026-08-23T06:00:00Z", civil="2026-08-23T08:00:00")
+    bare = {
+        "weight": {"weightGrams": 103000, "sampleTime": {"physicalTime": "2026-08-22T07:00:00Z"}}
+    }
+    days = sync_health.daily_weights([late, string_form, bare])
+    assert days == {"2026-08-25": 101.0, "2026-08-23": 102.0, "2026-08-22": 103.0}
