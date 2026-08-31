@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from "rea
 import { AuthProvider, useAuth } from "./auth";
 import Layout from "./components/Layout";
 import CalendarPage from "./pages/CalendarPage";
+import CoachPage from "./pages/CoachPage";
 import DayPage from "./pages/DayPage";
 import HistoryPage from "./pages/HistoryPage";
 import Login from "./pages/Login";
@@ -67,6 +68,7 @@ export default function App() {
                 <Route path="/dia/:fecha" element={<DayPage />} />
                 <Route path="/espera" element={<Waiting />} />
                 <Route path="/progreso" element={<ProgressPage />} />
+                <Route path="/entrenador" element={<CoachPage />} />
                 <Route path="/plan" element={<PlanPage />} />
                 <Route path="/historial" element={<HistoryPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />

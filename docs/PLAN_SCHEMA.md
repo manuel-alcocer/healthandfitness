@@ -4,6 +4,13 @@ The plan a goal carries (`Plan.data`) is a single JSON document. It is
 validated structurally by `backend/apps/plans/schema.py` on submission
 through the admin API.
 
+> **The weekly menu/schedule is only a SEED.** On submission it is
+> materialized into one independent `PlanDay` row per calendar date (from
+> `start_date` to the last `weekly_weight_targets` point). After that, each
+> date owns its meals and session: editing one date never affects any other,
+> even if two dates started with identical content because they share a
+> template weekday. See "Per-day materialization" below.
+
 ```jsonc
 {
   "summary": "One-sentence description of the plan (Spanish, shown to the user).",
@@ -96,3 +103,41 @@ ratio against its distance (or duration) target:
 
 Meal logs may carry an optional `option` per meal: which of the plan's
 options the user actually ate.
+
+## Per-day materialization
+
+- `hnfctl submit-plan` materializes the weekly template into `PlanDay` rows.
+  A fresh plan covers every date; a resubmission (revision/update)
+  regenerates **today onwards** and leaves past days untouched (history).
+- User API: `GET /api/plan/days?from=YYYY-MM-DD&to=YYYY-MM-DD` (max 31 days)
+  returns each date's own `{date, meals, session, source}`. `source` is
+  `"day"` for materialized dates and `"template"` for dates outside the
+  materialized range (and for legacy plans without rows).
+- Admin API: `GET /api/admin/users/<id>/plan/days[?from=&to=]` lists days;
+  `PATCH /api/admin/users/<id>/plan/days/<date>` (`hnfctl set-day`) edits ONE
+  date with `{"meals": [...]}` and/or `{"session": {...}}` — the session has
+  the same shape as a `weekly_schedule` entry without the `day` key.
+- The compliance calendar and weekly progress score against each date's own
+  `PlanDay`, falling back to the weekly template only for legacy plans.
+
+## Weekly coach feedback
+
+The coach publishes a weekly review the user sees in the app's "Entrenador"
+tab (`GET /api/feedback`). Submission (`hnfctl submit-feedback <id> FILE`,
+`PUT /api/admin/users/<id>/feedback`, upsert per week):
+
+```jsonc
+{
+  "week_start": "2026-08-24",         // Monday of the reviewed week
+  "summary": "Texto del entrenador (español; párrafos con líneas en blanco).",
+  "stats": {                           // optional, shown as tiles
+    "weight_delta_kg": -1.8,           // negative = lost
+    "distance_km": 42.0,
+    "active_days": 6,                  // days with logged activity (of 7)
+    "nutrition_adherence": 1.0         // 0..1
+  },
+  "adjustments": [                     // optional: plan changes applied
+    "Caminata del domingo reducida a 6,5 km"
+  ]
+}
+```

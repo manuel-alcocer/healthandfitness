@@ -18,6 +18,29 @@ def _require(condition: bool, message: str):
         raise PlanValidationError(message)
 
 
+def _check_meals(meals, where):
+    _require(isinstance(meals, list) and meals, f"{where} must be a non-empty list")
+    for meal in meals:
+        _require(isinstance(meal.get("name"), str), f"each meal in {where} needs a name")
+        _require(isinstance(meal.get("options"), list) and meal["options"],
+                 f"meal '{meal.get('name')}' in {where} needs options")
+
+
+def validate_day_patch(payload: dict) -> None:
+    """Validate a single-day edit: any of `meals` / `session`, same shapes as
+    the weekly template entries (session without the `day` key)."""
+    _require(isinstance(payload, dict), "day patch must be an object")
+    _require("meals" in payload or "session" in payload,
+             "day patch needs meals and/or session")
+    if "meals" in payload:
+        _check_meals(payload["meals"], "day.meals")
+    if "session" in payload:
+        session = payload["session"]
+        _require(isinstance(session, dict), "day.session must be an object")
+        _require(session.get("type") in VALID_SESSION_TYPES,
+                 f"unknown session type {session.get('type')!r}")
+
+
 def validate_plan_data(data: dict) -> None:
     _require(isinstance(data, dict), "plan must be an object")
     for key in ("summary", "daily_calories", "macros", "nutrition", "exercise",
@@ -32,13 +55,6 @@ def validate_plan_data(data: dict) -> None:
         _require(isinstance(macros.get(key), int | float), f"macros.{key} is required")
 
     nutrition = data["nutrition"]
-
-    def _check_meals(meals, where):
-        _require(isinstance(meals, list) and meals, f"{where} must be a non-empty list")
-        for meal in meals:
-            _require(isinstance(meal.get("name"), str), f"each meal in {where} needs a name")
-            _require(isinstance(meal.get("options"), list) and meal["options"],
-                     f"meal '{meal.get('name')}' in {where} needs options")
 
     # Preferred shape: a weekly menu with different dishes each day.
     # Legacy shape (same meals every day): nutrition.meals.

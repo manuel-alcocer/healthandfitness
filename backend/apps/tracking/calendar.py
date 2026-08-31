@@ -17,7 +17,7 @@ Components per day:
 from datetime import date, timedelta
 
 from apps.goals.models import Goal
-from apps.plans.models import Plan
+from apps.plans.models import Plan, PlanDay
 
 from .models import ActivityEntry, NutritionEntry
 
@@ -66,6 +66,15 @@ def compute_calendar(user, year: int, month: int, today: date | None = None) -> 
     last = (first.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
     tracked_from = plan.start_date if plan else None
 
+    # Each date's own session, when materialized; the weekly template is only
+    # the fallback for legacy plans without per-day rows.
+    sessions_by_day: dict[date, dict] = {}
+    if plan:
+        sessions_by_day = {
+            d.date: d.session
+            for d in PlanDay.objects.filter(plan=plan, date__gte=first, date__lte=last)
+        }
+
     acts_by_day: dict[date, list[ActivityEntry]] = {}
     for act in ActivityEntry.objects.filter(user=user, date__gte=first, date__lte=last):
         acts_by_day.setdefault(act.date, []).append(act)
@@ -79,7 +88,7 @@ def compute_calendar(user, year: int, month: int, today: date | None = None) -> 
     while day <= last:
         info: dict = {"date": day.isoformat(), "level": "none"}
         if tracked_from and tracked_from <= day <= today:
-            session = _session_for(schedule, day)
+            session = sessions_by_day.get(day) or _session_for(schedule, day)
             planned_exercise = bool(session and session.get("type") != "rest")
             acts = acts_by_day.get(day, [])
 

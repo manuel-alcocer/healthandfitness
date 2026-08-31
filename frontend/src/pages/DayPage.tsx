@@ -8,13 +8,12 @@ import WeightForm from "../components/forms/WeightForm";
 import { useToast } from "../toast";
 import {
   ACTIVITY_LABELS,
-  mealsForDate,
   planDayOf,
   type ActivityEntry,
   type CalendarDay,
   type CalendarMonth,
   type NutritionEntry,
-  type Plan,
+  type PlanDayData,
   type PlanSession,
   type WeightEntry,
 } from "../types";
@@ -64,7 +63,7 @@ export default function DayPage() {
   const today = todayISO();
   const isPastOrToday = date <= today;
 
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [planDay, setPlanDay] = useState<PlanDayData | null>(null);
   const [dayInfo, setDayInfo] = useState<CalendarDay | null>(null);
   const [nutrition, setNutrition] = useState<NutritionEntry | null>(null);
   const [activities, setActivities] = useState<ActivityEntry[]>([]);
@@ -76,9 +75,12 @@ export default function DayPage() {
   );
   const [reload, setReload] = useState(0);
 
+  // This date's own plan content — independent of every other date.
   useEffect(() => {
-    api<Plan>("/api/plan").then(setPlan).catch(() => {});
-  }, []);
+    api<{ results: PlanDayData[] }>(`/api/plan/days?from=${date}&to=${date}`)
+      .then((r) => setPlanDay(r.results[0] ?? null))
+      .catch(() => setPlanDay(null));
+  }, [date]);
 
   // Route params change without remounting, so collapse day-specific state.
   useEffect(() => {
@@ -135,9 +137,8 @@ export default function DayPage() {
   }
 
   const weekday = planDayOf(date);
-  const meals = plan ? mealsForDate(plan.data, date) : [];
-  const session =
-    plan?.data.exercise.weekly_schedule.find((s) => s.day === weekday) ?? null;
+  const meals = planDay?.meals ?? [];
+  const session: PlanSession | null = planDay?.session ?? null;
   const loggedByName = new Map(nutrition?.meals.map((m) => [m.name, m]) ?? []);
   const levelChip = dayInfo ? LEVEL_CHIP[dayInfo.level] : undefined;
   const label = new Date(date + "T00:00:00").toLocaleDateString("es-ES", {
@@ -298,8 +299,8 @@ export default function DayPage() {
               {openForm === key && (
                 <div style={{ paddingTop: 8 }}>
                   {key === "comidas" &&
-                    (plan ? (
-                      <MealsForm date={date} plan={plan.data} onSaved={refresh} />
+                    (meals.length ? (
+                      <MealsForm date={date} meals={meals} onSaved={refresh} />
                     ) : (
                       <p className="muted">Necesitas un plan activo para registrar comidas.</p>
                     ))}

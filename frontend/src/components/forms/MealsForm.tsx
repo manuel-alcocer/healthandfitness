@@ -2,16 +2,16 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { api, ApiError } from "../../api";
 import { useToast } from "../../toast";
-import { mealsForDate, type MealLog, type NutritionEntry, type PlanData } from "../../types";
+import type { MealLog, NutritionEntry, PlanMeal } from "../../types";
 
-/** Log the day's meals against that weekday's menu (status + chosen option). */
+/** Log the day's meals against that date's own menu (status + chosen option). */
 export default function MealsForm({
   date,
-  plan,
+  meals,
   onSaved,
 }: {
   date: string;
-  plan: PlanData;
+  meals: PlanMeal[];
   onSaved?: () => void;
 }) {
   const [mealLog, setMealLog] = useState<Record<string, MealLog>>({});
@@ -20,7 +20,6 @@ export default function MealsForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const toast = useToast();
-  const meals = mealsForDate(plan, date);
 
   useEffect(() => {
     api<{ results: NutritionEntry[] }>("/api/tracking/nutrition?limit=200")

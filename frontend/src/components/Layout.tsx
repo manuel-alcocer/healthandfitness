@@ -40,6 +40,11 @@ const icons = {
       <path d="M5 20c1.2-3.5 3.8-5 7-5s5.8 1.5 7 5" />
     </svg>
   ),
+  coach: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  ),
 };
 
 export default function Layout() {
@@ -84,7 +89,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <nav className="tabbar" aria-label="Navegación principal">
-        <div className="tabbar-inner tabbar-4">
+        <div className="tabbar-inner">
           <NavLink to="/" end className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
             {icons.calendar}
             <span>Calendario</span>
@@ -99,6 +104,10 @@ export default function Layout() {
           >
             <span className="tab-log-btn">{icons.plus}</span>
             <span>Registrar</span>
+          </NavLink>
+          <NavLink to="/entrenador" className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
+            {icons.coach}
+            <span>Entrenador</span>
           </NavLink>
           <NavLink to="/perfil" className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
             {icons.profile}

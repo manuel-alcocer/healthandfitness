@@ -91,3 +91,23 @@ carrera por natación, como pediste»).
 `cli/hnfctl progress <id>` shows the same verdict the user sees. Use it when
 Manuel asks how someone is doing; suggest plan adjustments if they are
 consistently `behind` (smaller deficit rarely helps — check adherence first).
+
+## Days are independent (no weekly cycle)
+
+Submitting a plan materializes its weekly template into one `PlanDay` per
+date. After that the template is dead weight: **to change a specific date use
+`hnfctl set-day <id> <date> FILE`** (`{"meals": [...]}` and/or
+`{"session": {...}}` — session shaped like a `weekly_schedule` entry without
+`day`). It changes ONLY that date. `hnfctl days <id> --from A --to B` lists
+what each date holds. Resubmitting a full plan regenerates today onwards and
+keeps past days as they were.
+
+## Weekly feedback
+
+After reviewing a user's week (typically Monday, for the Mon-Sun just
+ended), publish the coach's summary with `hnfctl submit-feedback <id> FILE`:
+`{week_start (that Monday), summary (Spanish, warm, concrete numbers),
+stats: {weight_delta_kg, distance_km, active_days, nutrition_adherence},
+adjustments: [plan changes applied, in Spanish]}`. It appears in the app's
+"Entrenador" tab. Pair it with the actual plan edits (`set-day` /
+`submit-plan`) so the adjustments listed are real.

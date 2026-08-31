@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from apps.goals.models import Goal
-from apps.plans.models import Plan
+from apps.plans.models import Plan, PlanDay
 
 from .models import ActivityEntry, NutritionEntry, WeightEntry
 
@@ -141,8 +141,18 @@ def compute_progress(user, today: date | None = None) -> dict:
 
     # --- This week's exercise compliance ---------------------------------
     monday, sunday = _week_bounds(today)
-    schedule = (plan_data.get("exercise") or {}).get("weekly_schedule", [])
-    planned_sessions = [s for s in schedule if s.get("type") != "rest"]
+    # This week's own materialized days when the plan has them; the weekly
+    # template is only the legacy fallback.
+    week_days = (
+        list(PlanDay.objects.filter(plan=plan, date__gte=monday, date__lte=sunday))
+        if plan
+        else []
+    )
+    if week_days:
+        planned_sessions = [d.session for d in week_days if d.session.get("type") != "rest"]
+    else:
+        schedule = (plan_data.get("exercise") or {}).get("weekly_schedule", [])
+        planned_sessions = [s for s in schedule if s.get("type") != "rest"]
     planned_distance = sum(
         float((s.get("target") or {}).get("distance_km") or 0) for s in planned_sessions
     )

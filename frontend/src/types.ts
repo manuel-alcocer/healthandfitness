@@ -53,7 +53,8 @@ export interface Me {
 }
 
 export interface PlanSession {
-  day: number;
+  /** Weekday 1..7 in the plan's weekly template; absent on materialized days. */
+  day?: number;
   type: string;
   title?: string;
   target?: {
@@ -93,25 +94,35 @@ export function planDayOf(iso: string): number {
   return jsDay === 0 ? 7 : jsDay;
 }
 
-/** The meals the plan stipulates for a given weekday (1..7). */
-export function mealsForDay(plan: PlanData, day: number): PlanMeal[] {
-  const menu = plan.nutrition.weekly_menu;
-  if (menu?.length) {
-    return menu.find((m) => m.day === day)?.meals ?? [];
-  }
-  return plan.nutrition.meals ?? [];
-}
-
-export function mealsForDate(plan: PlanData, iso: string): PlanMeal[] {
-  return mealsForDay(plan, planDayOf(iso));
-}
-
 export interface Plan {
   id: number;
   goal_id: number;
   start_date: string;
   created_at: string;
   data: PlanData;
+}
+
+/**
+ * One concrete date of the plan, from /api/plan/days. Every date is
+ * independent: two Mondays with the same dishes are a coincidence of the
+ * seed, not a shared weekly slot.
+ */
+export interface PlanDayData {
+  date: string;
+  meals: PlanMeal[];
+  session: PlanSession;
+  source: "day" | "template";
+}
+
+/** The coach's weekly review, shown in the Entrenador area. */
+export interface WeeklyFeedback {
+  id: number;
+  week_start: string;
+  summary: string;
+  stats: Record<string, number | string | null>;
+  adjustments: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Progress {

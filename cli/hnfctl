@@ -12,6 +12,11 @@ Commands:
   hnfctl progress <id>           the user's progress payload
   hnfctl submit-plan <id> FILE   submit a review file (see 'hnfctl template')
   hnfctl template                print a submission skeleton to stdout
+  hnfctl days <id> [--from F --to T]      list the user's materialized plan days
+  hnfctl set-day <id> DATE FILE  edit ONE date ({"meals": [...]} and/or {"session": {...}})
+  hnfctl feedback <id>           list the weekly feedback published for the user
+  hnfctl submit-feedback <id> FILE  publish a weekly review
+                                 ({week_start, summary, stats, adjustments})
 """
 
 import argparse
@@ -118,6 +123,19 @@ def main():
     p_submit.add_argument("user_id", type=int)
     p_submit.add_argument("file")
     sub.add_parser("template")
+    p_days = sub.add_parser("days")
+    p_days.add_argument("user_id", type=int)
+    p_days.add_argument("--from", dest="from_date")
+    p_days.add_argument("--to", dest="to_date")
+    p_setday = sub.add_parser("set-day")
+    p_setday.add_argument("user_id", type=int)
+    p_setday.add_argument("date")
+    p_setday.add_argument("file")
+    p_fb = sub.add_parser("feedback")
+    p_fb.add_argument("user_id", type=int)
+    p_sfb = sub.add_parser("submit-feedback")
+    p_sfb.add_argument("user_id", type=int)
+    p_sfb.add_argument("file")
     args = parser.parse_args()
 
     if args.cmd == "pending":
@@ -135,7 +153,30 @@ def main():
             payload = json.load(fh)
         result = call("POST", f"/api/admin/users/{args.user_id}/plan", payload)
         goal = result["goal"]
-        print(f"OK — goal status is now '{goal['status']}'")
+        print(
+            f"OK — goal status is now '{goal['status']}', "
+            f"{result.get('days_materialized', 0)} days materialized"
+        )
+    elif args.cmd == "days":
+        query = "&".join(
+            f"{key}={value}"
+            for key, value in (("from", args.from_date), ("to", args.to_date))
+            if value
+        )
+        pretty(call("GET", f"/api/admin/users/{args.user_id}/plan/days" + (f"?{query}" if query else "")))
+    elif args.cmd == "set-day":
+        with open(args.file) as fh:
+            payload = json.load(fh)
+        result = call("PATCH", f"/api/admin/users/{args.user_id}/plan/days/{args.date}", payload)
+        print(f"OK — {result['day']['date']} updated (only that date)")
+    elif args.cmd == "feedback":
+        pretty(call("GET", f"/api/admin/users/{args.user_id}/feedback"))
+    elif args.cmd == "submit-feedback":
+        with open(args.file) as fh:
+            payload = json.load(fh)
+        result = call("PUT", f"/api/admin/users/{args.user_id}/feedback", payload)
+        verb = "published" if result.get("created") else "updated"
+        print(f"OK — weekly feedback for {result['week_start']} {verb}")
 
 
 if __name__ == "__main__":

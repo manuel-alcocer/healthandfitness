@@ -9,8 +9,9 @@ from apps.accounts.models import Profile, User
 from apps.accounts.serializers import ProfileSerializer, UserSerializer
 from apps.goals.models import Goal
 from apps.goals.serializers import GoalSerializer
-from apps.plans.models import Plan
-from apps.plans.schema import PlanValidationError, validate_plan_data
+from apps.plans.materialize import materialize_days
+from apps.plans.models import Plan, PlanDay, WeeklyFeedback
+from apps.plans.schema import PlanValidationError, validate_day_patch, validate_plan_data
 from apps.tracking.progress import compute_progress, weekly_summary
 from apps.tracking.serializers import (
     ActivityEntrySerializer,
@@ -151,10 +152,156 @@ class SubmitPlanView(AdminView):
             goal.status = Goal.Status.SUGGESTED
         goal.save()
 
-        Plan.objects.update_or_create(
+        plan, created = Plan.objects.update_or_create(
             goal=goal, defaults={"data": plan_data, "start_date": date.today()}
         )
-        return Response({"detail": "ok", "goal": GoalSerializer(goal).data})
+        # Fresh plan: materialize every date. Replacement (revision/update):
+        # regenerate from today on, keeping past days as they were planned.
+        days = materialize_days(plan, from_date=None if created else date.today())
+        return Response(
+            {"detail": "ok", "days_materialized": days, "goal": GoalSerializer(goal).data}
+        )
+
+
+def _live_plan(user) -> Plan | None:
+    goal = user.goals.first()
+    if not goal or goal.status in (Goal.Status.COMPLETED, Goal.Status.CANCELLED):
+        return None
+    return Plan.objects.filter(goal=goal).first()
+
+
+class PlanDaysAdminView(AdminView):
+    """List a user's materialized plan days (optionally a date range)."""
+
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
+        plan = _live_plan(user)
+        if not plan:
+            return Response({"detail": "User has no plan"}, status=status.HTTP_404_NOT_FOUND)
+        days = plan.days.all()
+        try:
+            if request.query_params.get("from"):
+                days = days.filter(date__gte=date.fromisoformat(request.query_params["from"]))
+            if request.query_params.get("to"):
+                days = days.filter(date__lte=date.fromisoformat(request.query_params["to"]))
+        except ValueError:
+            return Response(
+                {"detail": "from/to must be YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        results = [
+            {"date": d.date.isoformat(), "meals": d.meals, "session": d.session}
+            for d in days
+        ]
+        return Response({"count": len(results), "results": results})
+
+
+class PlanDayAdminView(AdminView):
+    """Edit ONE date of a user's plan: meals and/or session.
+
+    Only that date changes — days are independent, never a weekly slot.
+    """
+
+    def patch(self, request, user_id, day):
+        try:
+            user = User.objects.get(pk=user_id)
+            on = date.fromisoformat(day)
+        except User.DoesNotExist:
+            return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
+        except ValueError:
+            return Response(
+                {"detail": "date must be YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        plan = _live_plan(user)
+        if not plan:
+            return Response({"detail": "User has no plan"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            validate_day_patch(request.data)
+        except (PlanValidationError, ValueError, TypeError, KeyError) as exc:
+            return Response(
+                {"detail": f"Invalid day patch: {exc}"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        defaults = {}
+        if "meals" in request.data:
+            defaults["meals"] = request.data["meals"]
+        if "session" in request.data:
+            defaults["session"] = request.data["session"]
+        plan_day, _ = PlanDay.objects.update_or_create(
+            plan=plan, date=on, defaults=defaults
+        )
+        return Response(
+            {
+                "detail": "ok",
+                "day": {
+                    "date": plan_day.date.isoformat(),
+                    "meals": plan_day.meals,
+                    "session": plan_day.session,
+                },
+            }
+        )
+
+
+class WeeklyFeedbackAdminView(AdminView):
+    """Publish (or update) the coach's weekly review for a user.
+
+    Body: week_start (Monday, YYYY-MM-DD), summary (Spanish text),
+    stats (object, optional), adjustments (list of strings, optional).
+    """
+
+    def get(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
+        results = [
+            {
+                "week_start": fb.week_start.isoformat(),
+                "summary": fb.summary,
+                "stats": fb.stats,
+                "adjustments": fb.adjustments,
+                "updated_at": fb.updated_at,
+            }
+            for fb in WeeklyFeedback.objects.filter(user=user)[:26]
+        ]
+        return Response({"count": len(results), "results": results})
+
+    def put(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Unknown user"}, status=status.HTTP_404_NOT_FOUND)
+        summary = request.data.get("summary")
+        try:
+            week_start = date.fromisoformat(request.data.get("week_start", ""))
+        except ValueError:
+            return Response(
+                {"detail": "week_start must be YYYY-MM-DD"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if week_start.isoweekday() != 1:
+            return Response(
+                {"detail": "week_start must be a Monday"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if not summary or not isinstance(summary, str):
+            return Response(
+                {"detail": "summary is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        stats = request.data.get("stats") or {}
+        adjustments = request.data.get("adjustments") or []
+        if not isinstance(stats, dict) or not isinstance(adjustments, list):
+            return Response(
+                {"detail": "stats must be an object and adjustments a list"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        fb, created = WeeklyFeedback.objects.update_or_create(
+            user=user,
+            week_start=week_start,
+            defaults={"summary": summary, "stats": stats, "adjustments": adjustments},
+        )
+        return Response(
+            {"detail": "ok", "created": created, "week_start": fb.week_start.isoformat()}
+        )
 
 
 class UserProgressView(AdminView):

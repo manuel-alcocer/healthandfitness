@@ -6,22 +6,47 @@ import { useAuth } from "../auth";
 import {
   ACTIVITY_LABELS,
   DAY_NAMES,
-  mealsForDay,
   planDayOf,
   type Plan,
+  type PlanDayData,
 } from "../types";
+
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+function shiftDate(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+/** "LUN 31" — the tab label for a concrete date. */
+function dayLabel(iso: string) {
+  return `${DAY_NAMES[planDayOf(iso) - 1]} ${Number(iso.slice(8, 10))}`;
+}
 
 export default function PlanPage() {
   const { me } = useAuth();
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [days, setDays] = useState<PlanDayData[]>([]);
   const [missing, setMissing] = useState(false);
   const [tab, setTab] = useState<"comida" | "ejercicio">("comida");
-  const [menuDay, setMenuDay] = useState(planDayOf(new Date().toISOString().slice(0, 10)));
+  const [menuDate, setMenuDate] = useState(todayISO());
 
   useEffect(() => {
     api<Plan>("/api/plan")
       .then(setPlan)
       .catch(() => setMissing(true));
+    // The plan is day-by-day: show the coming 7 real dates, not a repeating
+    // weekly template.
+    const from = todayISO();
+    api<{ results: PlanDayData[] }>(`/api/plan/days?from=${from}&to=${shiftDate(from, 6)}`)
+      .then((r) => setDays(r.results))
+      .catch(() => {});
   }, []);
 
   if (missing)
@@ -34,6 +59,7 @@ export default function PlanPage() {
   if (!plan) return <p className="muted">Cargando…</p>;
 
   const d = plan.data;
+  const selected = days.find((x) => x.date === menuDate) ?? days[0];
 
   return (
     <div className="stack">
@@ -83,22 +109,22 @@ export default function PlanPage() {
 
       {tab === "comida" ? (
         <div className="card">
-          {d.nutrition.weekly_menu?.length ? (
-            <div className="day-select" role="tablist" aria-label="Día de la semana">
-              {DAY_NAMES.map((label, i) => (
+          {days.length > 1 && (
+            <div className="day-select" role="tablist" aria-label="Próximos días">
+              {days.map((day) => (
                 <button
-                  key={label}
+                  key={day.date}
                   role="tab"
-                  aria-selected={menuDay === i + 1}
-                  className={menuDay === i + 1 ? "on" : ""}
-                  onClick={() => setMenuDay(i + 1)}
+                  aria-selected={selected?.date === day.date}
+                  className={selected?.date === day.date ? "on" : ""}
+                  onClick={() => setMenuDate(day.date)}
                 >
-                  {label}
+                  {dayLabel(day.date)}
                 </button>
               ))}
             </div>
-          ) : null}
-          {mealsForDay(d, menuDay).map((meal) => (
+          )}
+          {(selected?.meals ?? []).map((meal) => (
             <div className="meal-row" key={meal.name}>
               <div className="row-between">
                 <span className="meal-name">{meal.name}</span>
@@ -125,12 +151,15 @@ export default function PlanPage() {
         </div>
       ) : (
         <div className="card">
-          {d.exercise.weekly_schedule
-            .slice()
-            .sort((a, b) => a.day - b.day)
-            .map((s, i) => (
-              <div className={`session${s.type === "rest" ? " rest" : ""}`} key={i}>
-                <span className="day">{DAY_NAMES[s.day - 1]}</span>
+          {days.map((day) => {
+            const s = day.session;
+            return (
+              <div className={`session${s.type === "rest" ? " rest" : ""}`} key={day.date}>
+                <span className="day">
+                  <Link to={`/dia/${day.date}`} style={{ color: "inherit", textDecoration: "none" }}>
+                    {dayLabel(day.date)}
+                  </Link>
+                </span>
                 <div style={{ flex: 1 }}>
                   <div className="row-between">
                     <strong>{s.title || ACTIVITY_LABELS[s.type]}</strong>
@@ -149,7 +178,8 @@ export default function PlanPage() {
                   {s.details && <p className="muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{s.details}</p>}
                 </div>
               </div>
-            ))}
+            );
+          })}
           {d.exercise.guidelines?.length ? (
             <>
               <hr className="divider" />
