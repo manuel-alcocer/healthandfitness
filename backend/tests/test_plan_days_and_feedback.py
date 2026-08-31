@@ -96,9 +96,11 @@ def test_resubmission_keeps_past_days(admin_api, pending_goal, user):
     past.session = {"type": "hike", "title": "Ruta especial"}
     past.save()
 
-    # Resubmitting (e.g. a revision) regenerates today and the future only.
+    # Resubmitting (e.g. a revision) regenerates today and the future only,
+    # and keeps the original start_date so calendar history stays tracked.
     submit_plan(admin_api, user, weeks=4)
     plan.refresh_from_db()
+    assert plan.start_date == date.today() - timedelta(days=7)
     assert plan.days.get(date=date.today() - timedelta(days=3)).session["type"] == "hike"
     assert plan.days.filter(date__gte=date.today()).exists()
 

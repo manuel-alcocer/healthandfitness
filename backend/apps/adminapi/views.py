@@ -152,8 +152,12 @@ class SubmitPlanView(AdminView):
             goal.status = Goal.Status.SUGGESTED
         goal.save()
 
+        # A replacement keeps the original start_date: tracking (calendar
+        # history, materialized past days) began then, not at the revision.
         plan, created = Plan.objects.update_or_create(
-            goal=goal, defaults={"data": plan_data, "start_date": date.today()}
+            goal=goal,
+            defaults={"data": plan_data},
+            create_defaults={"data": plan_data, "start_date": date.today()},
         )
         # Fresh plan: materialize every date. Replacement (revision/update):
         # regenerate from today on, keeping past days as they were planned.
