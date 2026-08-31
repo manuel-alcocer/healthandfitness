@@ -15,6 +15,6 @@ resources:
 # change. Both images share the same tag.
 images:
   - name: ghcr.io/manuel-alcocer/hnf-backend
-    newTag: main-e5b82060ebb034fe3a17495361d33da775bb7e3d
+    newTag: main-766ddb4339fc0356bbbd2550c6ec5a6c09dd2d50
   - name: ghcr.io/manuel-alcocer/hnf-frontend
-    newTag: main-e5b82060ebb034fe3a17495361d33da775bb7e3d
+    newTag: main-766ddb4339fc0356bbbd2550c6ec5a6c09dd2d50
